@@ -251,8 +251,7 @@ public abstract class NettyMessage {
 
 		private static final byte ID = 0;
 
-		@Nullable
-		final Buffer buffer;
+		final ByteBuf buffer;
 
 		final InputChannelID receiverId;
 
@@ -260,31 +259,27 @@ public abstract class NettyMessage {
 
 		final int backlog;
 
-		// ---- Deserialization -----------------------------------------------
-
 		final boolean isBuffer;
 
-		@Nullable
-		ByteBuf retainedSlice;
-
 		private BufferResponse(
-				ByteBuf retainedSlice, boolean isBuffer, int sequenceNumber,
+				ByteBuf buffer,
+				boolean isBuffer,
+				int sequenceNumber,
 				InputChannelID receiverId,
 				int backlog) {
-			// When deserializing we first have to request a buffer from the respective buffer
-			// provider (at the handler) and copy the buffer from Netty's space to ours. Only
-			// retainedSlice is set in this case.
-			this.buffer = null;
-			this.retainedSlice = checkNotNull(retainedSlice);
+			this.buffer = checkNotNull(buffer);
 			this.isBuffer = isBuffer;
 			this.sequenceNumber = sequenceNumber;
 			this.receiverId = checkNotNull(receiverId);
 			this.backlog = backlog;
 		}
 
-		BufferResponse(Buffer buffer, int sequenceNumber, InputChannelID receiverId, int backlog) {
-			this.buffer = checkNotNull(buffer);
-			this.retainedSlice = null;
+		BufferResponse(
+				Buffer buffer,
+				int sequenceNumber,
+				InputChannelID receiverId,
+				int backlog) {
+			this.buffer = checkNotNull(buffer).asByteBuf();
 			this.isBuffer = buffer.isBuffer();
 			this.sequenceNumber = sequenceNumber;
 			this.receiverId = checkNotNull(receiverId);
@@ -296,14 +291,11 @@ public abstract class NettyMessage {
 		}
 
 		ByteBuf getNettyBuffer() {
-			return retainedSlice;
+			return buffer;
 		}
 
 		void releaseBuffer() {
-			if (retainedSlice != null) {
-				retainedSlice.release();
-				retainedSlice = null;
-			}
+			buffer.release();
 		}
 
 		// --------------------------------------------------------------------
@@ -312,14 +304,15 @@ public abstract class NettyMessage {
 
 		@Override
 		ByteBuf write(ByteBufAllocator allocator) throws IOException {
-			checkNotNull(buffer, "No buffer instance to serialize.");
 			// receiver ID (16), sequence number (4), backlog (4), isBuffer (1), buffer size (4)
 			final int messageHeaderLength = 16 + 4 + 4 + 1 + 4;
 
 			ByteBuf headerBuf = null;
 			try {
-				// in order to forward the buffer to netty, it needs an allocator set
-				buffer.setAllocator(allocator);
+				if (buffer instanceof Buffer) {
+					// in order to forward the buffer to netty, it needs an allocator set
+					((Buffer) buffer).setAllocator(allocator);
+				}
 
 				// only allocate header buffer - we will combine it with the data buffer below
 				headerBuf = allocateBuffer(allocator, ID, messageHeaderLength, buffer.readableBytes(), false);
@@ -327,21 +320,21 @@ public abstract class NettyMessage {
 				receiverId.writeTo(headerBuf);
 				headerBuf.writeInt(sequenceNumber);
 				headerBuf.writeInt(backlog);
-				headerBuf.writeBoolean(buffer.isBuffer());
+				headerBuf.writeBoolean(isBuffer);
 				headerBuf.writeInt(buffer.readableBytes());
 
 				CompositeByteBuf composityBuf = allocator.compositeDirectBuffer();
 				composityBuf.addComponent(headerBuf);
-				composityBuf.addComponent(buffer.asByteBuf());
+				composityBuf.addComponent(buffer);
 				// update writer index since we have data written to the components:
-				composityBuf.writerIndex(headerBuf.writerIndex() + buffer.getSize());
+				composityBuf.writerIndex(headerBuf.writerIndex() + buffer.writerIndex());
 				return composityBuf;
 			}
 			catch (Throwable t) {
 				if (headerBuf != null) {
 					headerBuf.release();
 				}
-				buffer.recycleBuffer();
+				buffer.release();
 
 				ExceptionUtils.rethrowIOException(t);
 				return null; // silence the compiler
@@ -356,7 +349,6 @@ public abstract class NettyMessage {
 			int size = buffer.readInt();
 
 			ByteBuf retainedSlice = buffer.readSlice(size).retain();
-
 			return new BufferResponse(retainedSlice, isBuffer, sequenceNumber, receiverId, backlog);
 		}
 	}
