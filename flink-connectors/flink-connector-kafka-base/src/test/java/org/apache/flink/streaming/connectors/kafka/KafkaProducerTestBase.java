@@ -27,6 +27,8 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.TypeInfoParser;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.client.JobExecutionException;
+import org.apache.flink.runtime.concurrent.ScheduledExecutor;
+import org.apache.flink.runtime.concurrent.ScheduledExecutorServiceAdapter;
 import org.apache.flink.runtime.state.CheckpointListener;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
@@ -57,6 +59,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.test.util.TestUtils.tryExecute;
 import static org.junit.Assert.assertEquals;
@@ -67,6 +71,26 @@ import static org.junit.Assert.fail;
  */
 @SuppressWarnings("serial")
 public abstract class KafkaProducerTestBase extends KafkaTestBase {
+
+	/**
+	 * Bla.
+	 */
+	public static void printAllStackTraces() {
+		Map<Thread, StackTraceElement[]> liveThreads = Thread.getAllStackTraces();
+
+		for (Map.Entry<Thread, StackTraceElement[]> entry : liveThreads.entrySet()) {
+			Thread thread = entry.getKey();
+			StackTraceElement[] stackTrace = entry.getValue();
+
+			System.err.println("Thread " + thread.getName());
+			for (StackTraceElement stackTraceElement : stackTrace) {
+				System.err.println("\tat " + stackTraceElement);
+			}
+		}
+	}
+
+	private final ScheduledExecutorService executorService = java.util.concurrent.Executors.newScheduledThreadPool(1);
+	private final ScheduledExecutor executor = new ScheduledExecutorServiceAdapter(executorService);
 
 	/**
 	 * This tests verifies that custom partitioning works correctly, with a default topic
@@ -314,6 +338,8 @@ public abstract class KafkaProducerTestBase extends KafkaTestBase {
 	 * and fails the broker to check whether flushed records since last checkpoint were not duplicated.
 	 */
 	protected void testExactlyOnce(boolean regularSink) throws Exception {
+		executor.schedule(KafkaProducerTestBase::printAllStackTraces, 10, TimeUnit.MINUTES);
+
 		final String topic = regularSink ? "exactlyOnceTopicRegularSink" : "exactlyTopicCustomOperator";
 		final int partition = 0;
 		final int numElements = 1000;
