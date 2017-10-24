@@ -226,13 +226,19 @@ public class FlinkKafkaProducer<K, V> implements Producer<K, V> {
 
 	private void flushNewPartitions() {
 		LOG.info("Flushing new partitions");
+		enqueueNewPartitions().await();
+	}
+
+	private TransactionalRequestResult enqueueNewPartitions() {
 		Object transactionManager = getValue(kafkaProducer, "transactionManager");
-		Object txnRequestHandler = invoke(transactionManager, "addPartitionsToTransactionHandler");
-		invoke(transactionManager, "enqueueRequest", new Class[]{txnRequestHandler.getClass().getSuperclass()}, new Object[]{txnRequestHandler});
-		TransactionalRequestResult result = (TransactionalRequestResult) getValue(txnRequestHandler, txnRequestHandler.getClass().getSuperclass(), "result");
-		Object sender = getValue(kafkaProducer, "sender");
-		invoke(sender, "wakeup");
-		result.await();
+		synchronized (transactionManager) {
+			Object txnRequestHandler = invoke(transactionManager, "addPartitionsToTransactionHandler");
+			invoke(transactionManager, "enqueueRequest", new Class[]{txnRequestHandler.getClass().getSuperclass()}, new Object[]{txnRequestHandler});
+			TransactionalRequestResult result = (TransactionalRequestResult) getValue(txnRequestHandler, txnRequestHandler.getClass().getSuperclass(), "result");
+			Object sender = getValue(kafkaProducer, "sender");
+			invoke(sender, "wakeup");
+			return result;
+		}
 	}
 
 	private static Enum<?> getEnum(String enumFullName) {
