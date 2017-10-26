@@ -226,21 +226,12 @@ public class FlinkKafkaProducer<K, V> implements Producer<K, V> {
 
 	private void flushNewPartitions() {
 		LOG.info("Flushing new partitions");
-		TransactionalRequestResult transactionalRequestResult = enqueueNewPartitions();
-		if (transactionalRequestResult != null) {
-			transactionalRequestResult.await();
-		}
+		enqueueNewPartitions().await();
 	}
 
 	private TransactionalRequestResult enqueueNewPartitions() {
 		Object transactionManager = getValue(kafkaProducer, "transactionManager");
 		synchronized (transactionManager) {
-			Object newPartitionsInTransaction = getValue(transactionManager, "newPartitionsInTransaction");
-			Object isEmpty = invoke(newPartitionsInTransaction, "isEmpty");
-			if ((Boolean) isEmpty) {
-				return null;
-			}
-
 			Object txnRequestHandler = invoke(transactionManager, "addPartitionsToTransactionHandler");
 			invoke(transactionManager, "enqueueRequest", new Class[]{txnRequestHandler.getClass().getSuperclass()}, new Object[]{txnRequestHandler});
 			TransactionalRequestResult result = (TransactionalRequestResult) getValue(txnRequestHandler, txnRequestHandler.getClass().getSuperclass(), "result");
