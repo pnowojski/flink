@@ -126,7 +126,6 @@ public class FlinkKafkaProducer011Tests extends KafkaTestBase {
 		deleteTestTopic(topicName);
 	}
 
-	@Test(timeout = 120_000L)
 	public void testFlinkKafkaProducer011FailBeforeNotify() throws Exception {
 		String topic = "flink-kafka-producer-fail-before-notify";
 

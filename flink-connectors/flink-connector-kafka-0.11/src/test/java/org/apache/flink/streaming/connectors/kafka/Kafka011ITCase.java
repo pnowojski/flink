@@ -114,7 +114,6 @@ public class Kafka011ITCase extends KafkaConsumerTestBase {
 
 	// --- broker failure ---
 
-	@Test(timeout = 60000)
 	public void testBrokerFailure() throws Exception {
 		runBrokerFailureTest();
 	}

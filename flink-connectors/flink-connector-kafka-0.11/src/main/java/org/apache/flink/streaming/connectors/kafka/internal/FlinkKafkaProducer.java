@@ -186,10 +186,10 @@ public class FlinkKafkaProducer<K, V> implements Producer<K, V> {
 		LOG.info("Attempting to resume transaction with producerId {} and epoch {}", producerId, epoch);
 
 		Object transactionManager = getValue(kafkaProducer, "transactionManager");
-		Object sequenceNumbers = getValue(transactionManager, "sequenceNumbers");
+		Object nextSequence = getValue(transactionManager, "nextSequence");
 
 		invoke(transactionManager, "transitionTo", getEnum("org.apache.kafka.clients.producer.internals.TransactionManager$State.INITIALIZING"));
-		invoke(sequenceNumbers, "clear");
+		invoke(nextSequence, "clear");
 
 		Object producerIdAndEpoch = getValue(transactionManager, "producerIdAndEpoch");
 		setValue(producerIdAndEpoch, "producerId", producerId);

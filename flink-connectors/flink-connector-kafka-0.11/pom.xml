@@ -35,9 +35,16 @@ under the License.
 
 	<packaging>jar</packaging>
 
+	<repositories>
+		<repository>
+			<id>staging</id>
+			<url>https://repository.apache.org/content/groups/staging/</url>
+		</repository>
+	</repositories>
+
 	<!-- Allow users to pass custom connector versions -->
 	<properties>
-		<kafka.version>0.11.0.1</kafka.version>
+		<kafka.version>1.0.0</kafka.version>
 	</properties>
 
 	<dependencies>

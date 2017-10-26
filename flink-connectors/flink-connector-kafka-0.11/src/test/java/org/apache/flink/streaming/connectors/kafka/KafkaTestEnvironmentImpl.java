@@ -43,8 +43,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.network.ListenerName;
-import org.apache.kafka.common.protocol.SecurityProtocol;
 import org.apache.kafka.common.requests.MetadataResponse;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -213,12 +213,13 @@ public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 					Thread.sleep(150);
 				}
 
-				List<MetadataResponse.PartitionMetadata> partitionMetadata = AdminUtils.fetchTopicMetadataFromZk(topic, zkUtils).partitionMetadata();
-				firstPart = partitionMetadata.get(0);
+				//List<MetadataResponse.PartitionMetadata> partitionMetadata = AdminUtils.fetchTopicMetadataFromZk(topic, zkUtils).partitionMetadata();
+				//firstPart = partitionMetadata.get(0);
+				throw new UnsupportedOperationException();
 			}
 			while (firstPart.error().code() != 0);
 
-			return firstPart.leader().id();
+			//return firstPart.leader().id();
 		} finally {
 			zkUtils.close();
 		}
