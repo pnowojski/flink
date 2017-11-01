@@ -46,6 +46,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -238,20 +239,29 @@ public class FlinkKafkaProducer<K, V> implements Producer<K, V> {
 	 * partitions.
 	 */
 	private void flushNewPartitions() {
+		Optional<TransactionalRequestResult> result = enqueueNewPartitions();
+		if (!result.isPresent()) {
+			LOG.info("No new partitions to flush");
+			return;
+		}
 		LOG.info("Flushing new partitions");
-		TransactionalRequestResult result = enqueueNewPartitions();
 		Object sender = getValue(kafkaProducer, "sender");
 		invoke(sender, "wakeup");
-		result.await();
+		result.get().await();
 	}
 
-	private TransactionalRequestResult enqueueNewPartitions() {
+	private Optional<TransactionalRequestResult> enqueueNewPartitions() {
 		Object transactionManager = getValue(kafkaProducer, "transactionManager");
 		synchronized (transactionManager) {
+			Object newPartitionsInTransaction = getValue(transactionManager, "newPartitionsInTransaction");
+			Object isEmpty = invoke(newPartitionsInTransaction, "isEmpty");
+			if ((Boolean) isEmpty) {
+				return Optional.empty();
+			}
+
 			Object txnRequestHandler = invoke(transactionManager, "addPartitionsToTransactionHandler");
 			invoke(transactionManager, "enqueueRequest", new Class[]{txnRequestHandler.getClass().getSuperclass()}, new Object[]{txnRequestHandler});
-			TransactionalRequestResult result = (TransactionalRequestResult) getValue(txnRequestHandler, txnRequestHandler.getClass().getSuperclass(), "result");
-			return result;
+			return Optional.of((TransactionalRequestResult) getValue(txnRequestHandler, txnRequestHandler.getClass().getSuperclass(), "result"));
 		}
 	}
 
