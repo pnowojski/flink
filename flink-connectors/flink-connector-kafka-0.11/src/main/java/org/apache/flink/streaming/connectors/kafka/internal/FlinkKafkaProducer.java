@@ -177,9 +177,9 @@ public class FlinkKafkaProducer<K, V> implements Producer<K, V> {
 	@Override
 	public void flush() {
 		kafkaProducer.flush();
-		if (transactionalId != null) {
-			flushNewPartitions();
-		}
+//		if (transactionalId != null) {
+//			flushNewPartitions();
+//		}
 	}
 
 	/**
