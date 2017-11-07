@@ -74,7 +74,7 @@ public abstract class KafkaTestBase extends TestLogger {
 
 	protected static final int NUM_TMS = 1;
 
-	protected static final int TM_SLOTS = 8;
+	protected static final int TM_SLOTS = 64;
 
 	protected static final int PARALLELISM = NUM_TMS * TM_SLOTS;
 
