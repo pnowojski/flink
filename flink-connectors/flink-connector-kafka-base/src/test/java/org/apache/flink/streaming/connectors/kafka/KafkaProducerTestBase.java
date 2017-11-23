@@ -291,7 +291,7 @@ public abstract class KafkaProducerTestBase extends KafkaTestBase {
 				topic,
 				partition,
 				Collections.unmodifiableSet(new HashSet<>(getIntegersSequence(BrokerRestartingMapper.numElementsBeforeSnapshot))),
-				30000L);
+				60000L);
 
 		deleteTestTopic(topic);
 	}
