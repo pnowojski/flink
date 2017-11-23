@@ -471,6 +471,8 @@ done
 echo "Trying to KILL watchdog (${WD_PID})."
 ( kill $WD_PID 2>&1 ) > /dev/null
 
+exit $EXIT_CODE
+
 # only misc builds flink-dist and flink-yarn-tests
 case $TEST in
 	(misc)
