@@ -30,6 +30,7 @@ import org.apache.flink.runtime.io.disk.InputViewIterator;
 import org.apache.flink.runtime.io.network.api.EndOfSuperstepEvent;
 import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
 import org.apache.flink.runtime.io.network.api.writer.RecordWriter;
+import org.apache.flink.runtime.io.network.api.writer.ResultPartitionEventHandler;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
 import org.apache.flink.runtime.iterative.concurrent.BlockingBackChannel;
 import org.apache.flink.runtime.iterative.concurrent.BlockingBackChannelBroker;
@@ -94,6 +95,8 @@ public class IterationHeadTask<X, Y, S extends Function, OT> extends AbstractIte
 
 	private ResultPartitionWriter toSync;
 
+	private ResultPartitionEventHandler eventHandler;
+
 	private int feedbackDataInput; // workset or bulk partial solution
 
 	// --------------------------------------------------------------------------------------------
@@ -128,6 +131,7 @@ public class IterationHeadTask<X, Y, S extends Function, OT> extends AbstractIte
 		}
 		// now, we can instantiate the sync gate
 		this.toSync = getEnvironment().getWriter(syncGateIndex);
+		this.eventHandler = getEnvironment().getEventHandler(syncGateIndex);
 	}
 
 	/**
@@ -223,8 +227,8 @@ public class IterationHeadTask<X, Y, S extends Function, OT> extends AbstractIte
 
 	private SuperstepBarrier initSuperstepBarrier() {
 		SuperstepBarrier barrier = new SuperstepBarrier(getUserCodeClassLoader());
-		this.toSync.subscribeToEvent(barrier, AllWorkersDoneEvent.class);
-		this.toSync.subscribeToEvent(barrier, TerminationEvent.class);
+		this.eventHandler.subscribeToEvent(barrier, AllWorkersDoneEvent.class);
+		this.eventHandler.subscribeToEvent(barrier, TerminationEvent.class);
 		return barrier;
 	}
 

@@ -37,6 +37,7 @@ import org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync;
 import org.apache.flink.runtime.io.network.api.serialization.AdaptiveSpanningRecordDeserializer;
 import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
 import org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer;
+import org.apache.flink.runtime.io.network.api.writer.ResultPartitionEventHandler;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
@@ -93,6 +94,8 @@ public class StreamMockEnvironment implements Environment {
 
 	private final List<ResultPartitionWriter> outputs;
 
+	private final List<ResultPartitionEventHandler> eventHandlers;
+
 	private final JobID jobID = new JobID();
 
 	private final BroadcastVariableManager bcVarManager = new BroadcastVariableManager();
@@ -117,8 +120,9 @@ public class StreamMockEnvironment implements Environment {
 			0 /* attempt number */);
 		this.jobConfiguration = jobConfig;
 		this.taskConfiguration = taskConfig;
-		this.inputs = new LinkedList<InputGate>();
-		this.outputs = new LinkedList<ResultPartitionWriter>();
+		this.inputs = new LinkedList<>();
+		this.outputs = new LinkedList<>();
+		this.eventHandlers = new LinkedList<>();
 
 		this.memManager = new MemoryManager(memorySize, 1);
 		this.ioManager = new IOManagerAsync();
@@ -186,6 +190,7 @@ public class StreamMockEnvironment implements Environment {
 			}).when(mockWriter).writeBufferToAllChannels(any(Buffer.class));
 
 			outputs.add(mockWriter);
+			eventHandlers.add(new ResultPartitionEventHandler());
 		}
 		catch (Throwable t) {
 			t.printStackTrace();
@@ -284,6 +289,11 @@ public class StreamMockEnvironment implements Environment {
 	@Override
 	public ResultPartitionWriter getWriter(int index) {
 		return outputs.get(index);
+	}
+
+	@Override
+	public ResultPartitionEventHandler getEventHandler(int index) {
+		return eventHandlers.get(index);
 	}
 
 	@Override

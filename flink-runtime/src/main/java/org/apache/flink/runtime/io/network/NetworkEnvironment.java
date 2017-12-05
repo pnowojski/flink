@@ -214,7 +214,7 @@ public class NetworkEnvironment {
 				}
 
 				// Register writer with task event dispatcher
-				taskEventDispatcher.registerWriterForIncomingTaskEvents(writer.getPartitionId(), writer);
+				taskEventDispatcher.registerWriterForIncomingTaskEvents(writer.getPartitionId(), task.getEventHandler(i));
 			}
 
 			// Setup the buffer pool for each buffer reader
@@ -266,7 +266,7 @@ public class NetworkEnvironment {
 			ResultPartitionWriter[] writers = task.getAllWriters();
 			if (writers != null) {
 				for (ResultPartitionWriter writer : writers) {
-					taskEventDispatcher.unregisterWriter(writer);
+					taskEventDispatcher.unregisterWriter(writer.getPartitionId());
 				}
 			}
 

@@ -51,6 +51,7 @@ import org.apache.flink.runtime.executiongraph.TaskInformation;
 import org.apache.flink.runtime.filecache.FileCache;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.network.NetworkEnvironment;
+import org.apache.flink.runtime.io.network.api.writer.ResultPartitionEventHandler;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
 import org.apache.flink.runtime.io.network.netty.PartitionProducerStateChecker;
 import org.apache.flink.runtime.io.network.partition.ResultPartition;
@@ -188,6 +189,8 @@ public class Task implements Runnable, TaskActions {
 	private final ResultPartition[] producedPartitions;
 
 	private final ResultPartitionWriter[] writers;
+
+	private final ResultPartitionEventHandler[] eventHandlers;
 
 	private final SingleInputGate[] inputGates;
 
@@ -361,6 +364,7 @@ public class Task implements Runnable, TaskActions {
 		// Produced intermediate result partitions
 		this.producedPartitions = new ResultPartition[resultPartitionDeploymentDescriptors.size()];
 		this.writers = new ResultPartitionWriter[resultPartitionDeploymentDescriptors.size()];
+		this.eventHandlers = new ResultPartitionEventHandler[resultPartitionDeploymentDescriptors.size()];
 
 		int counter = 0;
 
@@ -381,6 +385,7 @@ public class Task implements Runnable, TaskActions {
 				desc.sendScheduleOrUpdateConsumersMessage());
 
 			writers[counter] = new ResultPartitionWriter(producedPartitions[counter]);
+			eventHandlers[counter] = new ResultPartitionEventHandler();
 
 			++counter;
 		}
@@ -447,6 +452,10 @@ public class Task implements Runnable, TaskActions {
 
 	public ResultPartitionWriter[] getAllWriters() {
 		return writers;
+	}
+
+	public ResultPartitionEventHandler getEventHandler(int partition) {
+		return eventHandlers[partition];
 	}
 
 	public SingleInputGate[] getAllInputGates() {
@@ -683,6 +692,7 @@ public class Task implements Runnable, TaskActions {
 				inputSplitProvider,
 				distributedCacheEntries,
 				writers,
+				eventHandlers,
 				inputGates,
 				checkpointResponder,
 				taskManagerConfig,

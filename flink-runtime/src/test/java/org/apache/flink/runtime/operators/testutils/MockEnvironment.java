@@ -34,6 +34,7 @@ import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync;
 import org.apache.flink.runtime.io.network.api.serialization.AdaptiveSpanningRecordDeserializer;
 import org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer;
+import org.apache.flink.runtime.io.network.api.writer.ResultPartitionEventHandler;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
@@ -87,6 +88,8 @@ public class MockEnvironment implements Environment {
 	private final List<InputGate> inputs;
 
 	private final List<ResultPartitionWriter> outputs;
+
+	private final List<ResultPartitionEventHandler> eventHandlers;
 
 	private final JobID jobID = new JobID();
 
@@ -155,8 +158,9 @@ public class MockEnvironment implements Environment {
 		this.taskInfo = new TaskInfo(taskName, maxParallelism, subtaskIndex, parallelism, 0);
 		this.jobConfiguration = new Configuration();
 		this.taskConfiguration = taskConfiguration;
-		this.inputs = new LinkedList<InputGate>();
-		this.outputs = new LinkedList<ResultPartitionWriter>();
+		this.inputs = new LinkedList<>();
+		this.outputs = new LinkedList<>();
+		this.eventHandlers = new LinkedList<>();
 
 		this.memManager = new MemoryManager(memorySize, 1);
 		this.ioManager = new IOManagerAsync();
@@ -234,6 +238,7 @@ public class MockEnvironment implements Environment {
 			}).when(mockWriter).writeBuffer(any(Buffer.class), anyInt());
 
 			outputs.add(mockWriter);
+			eventHandlers.add(new ResultPartitionEventHandler());
 		}
 		catch (Throwable t) {
 			t.printStackTrace();
@@ -304,6 +309,11 @@ public class MockEnvironment implements Environment {
 	@Override
 	public ResultPartitionWriter getWriter(int index) {
 		return outputs.get(index);
+	}
+
+	@Override
+	public ResultPartitionEventHandler getEventHandler(int index) {
+		return eventHandlers.get(index);
 	}
 
 	@Override

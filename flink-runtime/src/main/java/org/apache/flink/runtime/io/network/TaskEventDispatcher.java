@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.io.network;
 
 import org.apache.flink.runtime.event.TaskEvent;
+import org.apache.flink.runtime.io.network.api.writer.ResultPartitionEventHandler;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.consumer.LocalInputChannel;
@@ -38,19 +39,19 @@ import java.util.Map;
  */
 public class TaskEventDispatcher {
 
-	private final Map<ResultPartitionID, ResultPartitionWriter> registeredWriters = Maps.newHashMap();
+	private final Map<ResultPartitionID, EventListener<TaskEvent>> eventListener = Maps.newHashMap();
 
-	public void registerWriterForIncomingTaskEvents(ResultPartitionID partitionId, ResultPartitionWriter writer) {
-		synchronized (registeredWriters) {
-			if (registeredWriters.put(partitionId, writer) != null) {
+	public void registerWriterForIncomingTaskEvents(ResultPartitionID partitionId, ResultPartitionEventHandler writer) {
+		synchronized (eventListener) {
+			if (eventListener.put(partitionId, writer) != null) {
 				throw new IllegalStateException("Already registered at task event dispatcher.");
 			}
 		}
 	}
 
-	public void unregisterWriter(ResultPartitionWriter writer) {
-		synchronized (registeredWriters) {
-			registeredWriters.remove(writer.getPartitionId());
+	public void unregisterWriter(ResultPartitionID partitionId) {
+		synchronized (eventListener) {
+			eventListener.remove(partitionId);
 		}
 	}
 
@@ -61,7 +62,7 @@ public class TaskEventDispatcher {
 	 * thread on behalf of a {@link RemoteInputChannel}.
 	 */
 	public boolean publish(ResultPartitionID partitionId, TaskEvent event) {
-		EventListener<TaskEvent> listener = registeredWriters.get(partitionId);
+		EventListener<TaskEvent> listener = eventListener.get(partitionId);
 
 		if (listener != null) {
 			listener.onEvent(event);
@@ -72,8 +73,8 @@ public class TaskEventDispatcher {
 	}
 
 	public void clearAll() {
-		synchronized (registeredWriters) {
-			registeredWriters.clear();
+		synchronized (eventListener) {
+			eventListener.clear();
 		}
 	}
 }

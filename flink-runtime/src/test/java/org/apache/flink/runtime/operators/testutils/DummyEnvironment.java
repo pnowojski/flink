@@ -30,6 +30,7 @@ import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
+import org.apache.flink.runtime.io.network.api.writer.ResultPartitionEventHandler;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
@@ -173,6 +174,11 @@ public class DummyEnvironment implements Environment {
 	@Override
 	public ResultPartitionWriter getWriter(int index) {
 		return null;
+	}
+
+	@Override
+	public ResultPartitionEventHandler getEventHandler(int index) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
