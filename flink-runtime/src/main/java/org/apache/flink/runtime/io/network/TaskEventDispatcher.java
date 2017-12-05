@@ -76,13 +76,4 @@ public class TaskEventDispatcher {
 			registeredWriters.clear();
 		}
 	}
-
-	/**
-	 * Returns the number of currently registered writers.
-	 */
-	int getNumberOfRegisteredWriters() {
-		synchronized (registeredWriters) {
-			return registeredWriters.size();
-		}
-	}
 }
