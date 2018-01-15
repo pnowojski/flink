@@ -21,7 +21,7 @@ package org.apache.flink.runtime.io.network.netty;
 import org.apache.flink.runtime.event.TaskEvent;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
-import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
+import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannel;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannelID;
@@ -252,7 +252,7 @@ public abstract class NettyMessage {
 		private static final byte ID = 0;
 
 		@Nullable
-		final NetworkBuffer buffer;
+		final Buffer buffer;
 
 		final InputChannelID receiverId;
 
@@ -282,7 +282,7 @@ public abstract class NettyMessage {
 			this.backlog = backlog;
 		}
 
-		BufferResponse(NetworkBuffer buffer, int sequenceNumber, InputChannelID receiverId, int backlog) {
+		BufferResponse(Buffer buffer, int sequenceNumber, InputChannelID receiverId, int backlog) {
 			this.buffer = checkNotNull(buffer);
 			this.retainedSlice = null;
 			this.isBuffer = buffer.isBuffer();
@@ -332,9 +332,9 @@ public abstract class NettyMessage {
 
 				CompositeByteBuf composityBuf = allocator.compositeDirectBuffer();
 				composityBuf.addComponent(headerBuf);
-				composityBuf.addComponent(buffer);
+				composityBuf.addComponent(buffer.asByteBuf());
 				// update writer index since we have data written to the components:
-				composityBuf.writerIndex(headerBuf.writerIndex() + buffer.writerIndex());
+				composityBuf.writerIndex(headerBuf.writerIndex() + buffer.getSize());
 				return composityBuf;
 			}
 			catch (Throwable t) {

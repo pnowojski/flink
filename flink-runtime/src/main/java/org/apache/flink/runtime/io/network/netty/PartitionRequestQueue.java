@@ -21,7 +21,6 @@ package org.apache.flink.runtime.io.network.netty;
 import org.apache.flink.runtime.io.network.api.EndOfPartitionEvent;
 import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
-import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
 import org.apache.flink.runtime.io.network.netty.NettyMessage.ErrorResponse;
 import org.apache.flink.runtime.io.network.partition.ProducerFailedException;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannel.BufferAndAvailability;
@@ -192,7 +191,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 						}
 
 						BufferResponse msg = new BufferResponse(
-							(NetworkBuffer) next.buffer(),
+							next.buffer(),
 							reader.getSequenceNumber(),
 							reader.getReceiverId(),
 							0);
