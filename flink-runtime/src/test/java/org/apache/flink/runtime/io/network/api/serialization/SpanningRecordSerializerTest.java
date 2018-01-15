@@ -36,30 +36,28 @@ import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.
 public class SpanningRecordSerializerTest {
 
 	@Test
-	public void testHasData() throws IOException {
+	public void testHasSerializedData() throws IOException {
 		final int SEGMENT_SIZE = 16;
 
 		final SpanningRecordSerializer<SerializationTestType> serializer = new SpanningRecordSerializer<SerializationTestType>();
 		final SerializationTestType randomIntRecord = Util.randomRecord(SerializationTestTypeFactory.INT);
 
-		Assert.assertFalse(serializer.hasData());
+		Assert.assertFalse(serializer.hasSerializedData());
 
 		serializer.addRecord(randomIntRecord);
-		Assert.assertTrue(serializer.hasData());
+		Assert.assertTrue(serializer.hasSerializedData());
 
 		serializer.setNextBufferBuilder(createBufferBuilder(SEGMENT_SIZE));
-		Assert.assertTrue(serializer.hasData());
+		Assert.assertFalse(serializer.hasSerializedData());
 
-		serializer.clear();
-		Assert.assertFalse(serializer.hasData());
-
-		serializer.setNextBufferBuilder(createBufferBuilder(SEGMENT_SIZE));
+		serializer.setNextBufferBuilder(createBufferBuilder(8));
 
 		serializer.addRecord(randomIntRecord);
-		Assert.assertTrue(serializer.hasData());
+		Assert.assertFalse(serializer.hasSerializedData());
 
 		serializer.addRecord(randomIntRecord);
-		Assert.assertTrue(serializer.hasData());
+		// Buffer builder full!
+		Assert.assertTrue(serializer.hasSerializedData());
 	}
 
 	@Test
@@ -185,7 +183,6 @@ public class SpanningRecordSerializerTest {
 
 				while (result.isFullBuffer()) {
 					numBytes -= segmentSize;
-
 					result = serializer.setNextBufferBuilder(createBufferBuilder(segmentSize));
 				}
 			}
