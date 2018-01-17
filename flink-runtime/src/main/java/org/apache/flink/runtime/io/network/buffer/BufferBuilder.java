@@ -29,8 +29,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * Not thread safe class for filling in the content of the {@link MemorySegment}. Once writing to the builder
- * is complete, {@link Buffer} instance can be built and shared across multiple threads.
+ * Not thread safe class for filling in the content of the {@link MemorySegment}. To access written data please use
+ * {@link BufferConsumer} which allows to build {@link Buffer} instances from the written data.
  */
 @NotThreadSafe
 public class BufferBuilder {
@@ -40,9 +40,12 @@ public class BufferBuilder {
 
 	private final SettablePositionMarker positionMarker = new SettablePositionMarker();
 
-	private int position = 0; // cache for positionMarker value, it allows us to avoid reading from positionMarker
+	private boolean bufferConsumerCreated = false;
 
-	private boolean built = false;
+	/**
+	 * Cache for positionMarker value, it allows us to avoid reading from positionMarker.
+	 */
+	private int position = 0;
 
 	public BufferBuilder(MemorySegment memorySegment, BufferRecycler recycler) {
 		this.memorySegment = checkNotNull(memorySegment);
@@ -50,11 +53,25 @@ public class BufferBuilder {
 	}
 
 	/**
+	 * @return created matching instance of {@link BufferConsumer} to this {@link BufferBuilder}. There can exist only
+	 * one {@link BufferConsumer} per each {@link BufferBuilder} and vice versa.
+	 */
+	public BufferConsumer createBufferConsumer() {
+		checkState(!bufferConsumerCreated, "There can not exists two BufferConsumer for one BufferBuilder");
+		bufferConsumerCreated = true;
+		return new BufferConsumer(
+			memorySegment,
+			recycler,
+			positionMarker);
+	}
+
+	/**
+	 * Append as many data as possible from {@code source}. Not everything might be copied if there is not enough
+	 * space in the underlying {@link MemorySegment}
+	 *
 	 * @return number of copied bytes
 	 */
 	public int append(ByteBuffer source) {
-		checkState(!built);
-
 		int needed = source.remaining();
 		int available = limit() - position;
 		int toCopy = Math.min(needed, available);
@@ -72,22 +89,6 @@ public class BufferBuilder {
 
 	public boolean isEmpty() {
 		return position == 0;
-	}
-
-	public int getPosition() {
-		return position;
-	}
-
-	MemorySegment getMemorySegment() {
-		return memorySegment;
-	}
-
-	BufferRecycler getRecycler() {
-		return recycler;
-	}
-
-	PositionMarker getPositionMarker() {
-		return positionMarker;
 	}
 
 	private int limit() {

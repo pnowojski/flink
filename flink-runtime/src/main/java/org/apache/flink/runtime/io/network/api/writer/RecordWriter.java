@@ -134,8 +134,8 @@ public class RecordWriter<T extends IOReadableWritable> {
 				} else {
 					BufferBuilder bufferBuilder =
 						targetPartition.getBufferProvider().requestBufferBuilderBlocking();
-					closeBufferConsumer(targetChannel);
-					bufferConsumers[targetChannel] = Optional.of(BufferConsumer.consumerFor(bufferBuilder));
+					checkState(!bufferConsumers[targetChannel].isPresent());
+					bufferConsumers[targetChannel] = Optional.of(bufferBuilder.createBufferConsumer());
 					result = serializer.setNextBufferBuilder(bufferBuilder);
 				}
 			}
@@ -192,8 +192,8 @@ public class RecordWriter<T extends IOReadableWritable> {
 	}
 
 	/**
-	 * Writes the buffer to the {@link ResultPartitionWriter} and removes the
-	 * buffer from the serializer state.
+	 * Tries to consume serialized data and (if data present) writes them to the {@link ResultPartitionWriter}.
+	 * After writing it clean ups the state.
 	 *
 	 * Needs to be synchronized on the serializer!
 	 *
