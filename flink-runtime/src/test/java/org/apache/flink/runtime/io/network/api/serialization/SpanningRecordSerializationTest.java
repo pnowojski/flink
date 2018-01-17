@@ -147,7 +147,6 @@ public class SpanningRecordSerializationTest {
 		// deserialize left over records
 		deserializer.setNextMemorySegment(serializer.getCurrentBuffer().getMemorySegment(), (numBytes % segmentSize));
 
-		serializer.clear();
 
 		while (!serializedRecords.isEmpty()) {
 			SerializationTestType expected = serializedRecords.poll();
@@ -163,7 +162,7 @@ public class SpanningRecordSerializationTest {
 
 		// assert that all records have been serialized and deserialized
 		Assert.assertEquals(0, numRecords);
-		Assert.assertFalse(serializer.hasData());
+		Assert.assertFalse(serializer.hasSerializedData());
 		Assert.assertFalse(deserializer.hasUnfinishedData());
 	}
 }

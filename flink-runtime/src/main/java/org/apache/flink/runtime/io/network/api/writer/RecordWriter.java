@@ -143,7 +143,6 @@ public class RecordWriter<T extends IOReadableWritable> {
 
 				synchronized (serializer) {
 					tryWriteAndClearBuffer(targetChannel, serializer);
-					checkState(!serializer.hasData());
 
 					// retain the buffer so that it can be recycled by each channel of targetPartition
 					targetPartition.writeBuffer(eventBuffer.readOnlySlice().retainBuffer(), targetChannel);
@@ -162,7 +161,6 @@ public class RecordWriter<T extends IOReadableWritable> {
 
 			synchronized (serializer) {
 				tryWriteAndClearBuffer(targetChannel, serializer);
-				checkState(!serializer.hasData());
 			}
 		}
 	}

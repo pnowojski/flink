@@ -98,21 +98,9 @@ public interface RecordSerializer<T extends IOReadableWritable> {
 	Buffer getCurrentBuffer();
 
 	/**
-	 * Resets the target buffer to <tt>null</tt>.
-	 *
-	 * <p><strong>NOTE:</strong> After calling this method, <strong>a new target
-	 * buffer is required to continue writing</strong> (see
-	 * {@link #setNextBufferBuilder(BufferBuilder)}).</p>
+	 * Clear and release internal state.
 	 */
 	void clear();
-
-	/**
-	 * Determines whether data is left, either in the current target buffer or
-	 * in any internal state set up for the record to serialize.
-	 *
-	 * @return <tt>true</tt> if some data is present
-	 */
-	boolean hasData();
 
 	/**
 	 * @return <tt>true</tt> if has some serialized data pending copying to the result {@link BufferBuilder}.

@@ -30,8 +30,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import static org.apache.flink.util.Preconditions.checkState;
-
 /**
  * Record serializer which serializes the complete record to an intermediate
  * data serialization buffer and copies this buffer to target buffers
@@ -105,7 +103,6 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 
 	@Override
 	public SerializationResult setNextBufferBuilder(BufferBuilder buffer) throws IOException {
-		checkState(!hasDataInBuffer(), "Overriding existing buffer, potential data loss!");
 		targetBuffer = buffer;
 
 		if (lengthBuffer.hasRemaining()) {
@@ -166,17 +163,7 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 	}
 
 	@Override
-	public boolean hasData() {
-		// either data in current target buffer or intermediate buffers
-		return hasDataInBuffer() || hasSerializedData();
-	}
-
-	@Override
 	public boolean hasSerializedData() {
 		return lengthBuffer.hasRemaining() || dataBuffer.hasRemaining();
-	}
-
-	private boolean hasDataInBuffer() {
-		return targetBuffer != null && !targetBuffer.isEmpty();
 	}
 }
