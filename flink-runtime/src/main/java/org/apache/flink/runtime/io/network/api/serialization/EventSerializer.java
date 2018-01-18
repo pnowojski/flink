@@ -18,7 +18,8 @@
 
 package org.apache.flink.runtime.io.network.api.serialization;
 
-import java.nio.charset.Charset;
+import org.apache.flink.core.memory.DataInputDeserializer;
+import org.apache.flink.core.memory.DataOutputSerializer;
 import org.apache.flink.core.memory.MemorySegment;
 import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
@@ -29,16 +30,16 @@ import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
 import org.apache.flink.runtime.io.network.api.EndOfPartitionEvent;
 import org.apache.flink.runtime.io.network.api.EndOfSuperstepEvent;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
+import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
 import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
-import org.apache.flink.core.memory.DataInputDeserializer;
-import org.apache.flink.core.memory.DataOutputSerializer;
 import org.apache.flink.util.InstantiationUtil;
+import org.apache.flink.util.Preconditions;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import org.apache.flink.util.Preconditions;
+import java.nio.charset.Charset;
 
 /**
  * Utility class to serialize and deserialize task events.
@@ -280,6 +281,14 @@ public class EventSerializer {
 		buffer.setSize(serializedEvent.remaining());
 
 		return buffer;
+	}
+
+	public static BufferConsumer toBufferConsumer(AbstractEvent event) throws IOException {
+		final ByteBuffer serializedEvent = EventSerializer.toSerializedEvent(event);
+
+		MemorySegment data = MemorySegmentFactory.wrap(serializedEvent.array());
+
+		return new BufferConsumer(data, FreeingBufferRecycler.INSTANCE, false);
 	}
 
 	public static AbstractEvent fromBuffer(Buffer buffer, ClassLoader classLoader) throws IOException {
