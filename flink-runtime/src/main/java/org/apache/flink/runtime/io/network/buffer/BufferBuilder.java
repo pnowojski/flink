@@ -42,11 +42,6 @@ public class BufferBuilder {
 
 	private boolean bufferConsumerCreated = false;
 
-	/**
-	 * Cache for positionMarker value, it allows us to avoid reading from positionMarker.
-	 */
-	private int position = 0;
-
 	public BufferBuilder(MemorySegment memorySegment, BufferRecycler recycler) {
 		this.memorySegment = checkNotNull(memorySegment);
 		this.recycler = checkNotNull(recycler);
@@ -72,44 +67,108 @@ public class BufferBuilder {
 	 * @return number of copied bytes
 	 */
 	public int append(ByteBuffer source) {
+		checkState(!isFinished());
+
 		int needed = source.remaining();
-		int available = limit() - position;
+		int available = getMaxCapacity() - positionMarker.getCached();
 		int toCopy = Math.min(needed, available);
 
-		memorySegment.put(position, source, toCopy);
-		position += toCopy;
-		positionMarker.set(position);
+		memorySegment.put(positionMarker.getCached(), source, toCopy);
+		positionMarker.move(toCopy);
 		return toCopy;
 	}
 
+	/**
+	 * Mark this {@link BufferBuilder} and associated {@link BufferConsumer} as finished - no new data writes will be
+	 * allowed.
+	 *
+	 * @return number of written bytes.
+	 */
+	public int finish() {
+		checkState(!isFinished());
+		positionMarker.markFinished();
+		return getWrittenBytes();
+	}
+
+	public boolean isFinished() {
+		return positionMarker.isFinished();
+	}
+
 	public boolean isFull() {
-		checkState(position <= limit());
-		return position == limit();
+		checkState(positionMarker.getCached() <= getMaxCapacity());
+		return positionMarker.getCached() == getMaxCapacity();
 	}
 
 	public boolean isEmpty() {
-		return position == 0;
+		return positionMarker.getCached() == 0;
 	}
 
-	private int limit() {
+	public int getMaxCapacity() {
 		return memorySegment.size();
 	}
 
+	public int getWrittenBytes() {
+		return positionMarker.getCached();
+	}
+
+	/**
+	 * Holds a reference to the current writer position. Negative values indicate that writer ({@link BufferBuilder}
+	 * has finished. Value {@code Integer.MIN_VALUE} represents finished empty buffer.
+	 */
 	@ThreadSafe
 	interface PositionMarker {
+		int FINISHED_EMPTY = Integer.MIN_VALUE;
+
 		int get();
+
+		static boolean isFinished(int position) {
+			return position < 0;
+		}
+
+		static int getAbsolute(int position) {
+			if (position == FINISHED_EMPTY) {
+				return 0;
+			}
+			return Math.abs(position);
+		}
 	}
 
 	private static class SettablePositionMarker implements PositionMarker {
 		private volatile int position = 0;
+
+		/**
+		 * Locally cached value of volatile {@code position} to avoid unnecessary volatile accesses.
+		 */
+		private int cachedPosition = 0;
 
 		@Override
 		public int get() {
 			return position;
 		}
 
-		public void set(int newPosition) {
-			position = newPosition;
+		public boolean isFinished() {
+			return PositionMarker.isFinished(cachedPosition);
+		}
+
+		public int getCached() {
+			return PositionMarker.getAbsolute(cachedPosition);
+		}
+
+		public void markFinished() {
+			int newValue = -getCached();
+			if (newValue == 0) {
+				newValue = FINISHED_EMPTY;
+			}
+			set(newValue);
+		}
+
+		public void move(int offset) {
+			set(cachedPosition + offset);
+		}
+
+		public void set(int value) {
+			cachedPosition = value;
+			position = cachedPosition;
 		}
 	}
 }

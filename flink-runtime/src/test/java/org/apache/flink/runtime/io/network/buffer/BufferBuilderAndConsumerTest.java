@@ -36,7 +36,8 @@ import static org.junit.Assert.assertTrue;
  * Tests for {@link BufferBuilder}.
  */
 public class BufferBuilderAndConsumerTest {
-	private static final int BUFFER_SIZE = 10 * Integer.BYTES;
+	private static final int BUFFER_INT_SIZE = 10;
+	private static final int BUFFER_SIZE = BUFFER_INT_SIZE * Integer.BYTES;
 
 	@Test
 	public void referenceCounting() {
@@ -127,8 +128,48 @@ public class BufferBuilderAndConsumerTest {
 			}
 
 			assertContent(bufferConsumer, originalValues.stream().mapToInt(Integer::intValue).toArray());
-			assertTrue(bufferConsumer.isFinished());
 		}
+	}
+
+	@Test
+	public void emptyIsFinished() {
+		testIsFinished(0);
+	}
+
+	@Test
+	public void partiallyFullIsFinished() {
+		testIsFinished(BUFFER_INT_SIZE / 2);
+	}
+
+	@Test
+	public void fullIsFinished() {
+		testIsFinished(BUFFER_INT_SIZE);
+	}
+
+	private static void testIsFinished(int writes) {
+		BufferBuilder bufferBuilder = createBufferBuilder();
+		BufferConsumer bufferConsumer = bufferBuilder.createBufferConsumer();
+
+		for (int i = 0; i < writes; i++) {
+			assertEquals(Integer.BYTES, bufferBuilder.append(toByteBuffer(42)));
+		}
+
+		assertFalse(bufferBuilder.isFinished());
+		assertFalse(bufferConsumer.isFinished());
+
+		bufferConsumer.build();
+
+		assertFalse(bufferBuilder.isFinished());
+		assertFalse(bufferConsumer.isFinished());
+
+		bufferBuilder.finish();
+
+		assertTrue(bufferBuilder.isFinished());
+		assertFalse(bufferConsumer.isFinished());
+
+		bufferConsumer.build();
+
+		assertTrue(bufferConsumer.isFinished());
 	}
 
 	private static ByteBuffer toByteBuffer(int... data) {

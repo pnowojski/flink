@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.io.network.buffer;
 
 import org.apache.flink.core.memory.MemorySegment;
+import org.apache.flink.runtime.io.network.buffer.BufferBuilder.PositionMarker;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -38,29 +39,27 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public class BufferConsumer implements Closeable {
 	private final Buffer buffer;
 
-	private final BufferBuilder.PositionMarker currentWriterPosition;
-
-	private int lastWriterPosition = 0;
+	private final CachedPositionMarker writerPosition;
 
 	private int currentReaderPosition = 0;
 
 	public BufferConsumer(
 			MemorySegment memorySegment,
 			BufferRecycler recycler,
-			BufferBuilder.PositionMarker currentWriterPosition) {
+			PositionMarker currentWriterPosition) {
 
 		this.buffer = new NetworkBuffer(checkNotNull(memorySegment), checkNotNull(recycler), true);
-		this.currentWriterPosition = checkNotNull(currentWriterPosition);
+		this.writerPosition = new CachedPositionMarker(checkNotNull(currentWriterPosition));
 	}
 
 	public boolean isFinished() {
-		return lastWriterPosition == limit();
+		return writerPosition.isFinished();
 	}
 
 	public Buffer build() {
-		lastWriterPosition = currentWriterPosition.get();
-		Buffer slice = buffer.readOnlySlice(currentReaderPosition, lastWriterPosition - currentReaderPosition);
-		currentReaderPosition = lastWriterPosition;
+		writerPosition.update();
+		Buffer slice = buffer.readOnlySlice(currentReaderPosition, writerPosition.getCached() - currentReaderPosition);
+		currentReaderPosition = writerPosition.getCached();
 		return slice.retainBuffer();
 	}
 
@@ -72,10 +71,32 @@ public class BufferConsumer implements Closeable {
 	}
 
 	public int getWrittenBytes() {
-		return lastWriterPosition;
+		return writerPosition.getCached();
 	}
 
-	private int limit() {
-		return buffer.getMaxCapacity();
+	private static class CachedPositionMarker {
+		private final PositionMarker positionMarker;
+
+		/**
+		 * Locally cached value of {@link PositionMarker} to avoid unnecessary volatile accesses.
+		 */
+		private int cachedPosition;
+
+		public CachedPositionMarker(PositionMarker positionMarker) {
+			this.positionMarker = checkNotNull(positionMarker);
+			update();
+		}
+
+		public boolean isFinished() {
+			return PositionMarker.isFinished(cachedPosition);
+		}
+
+		public int getCached() {
+			return PositionMarker.getAbsolute(cachedPosition);
+		}
+
+		private void update() {
+			this.cachedPosition = positionMarker.get();
+		}
 	}
 }
