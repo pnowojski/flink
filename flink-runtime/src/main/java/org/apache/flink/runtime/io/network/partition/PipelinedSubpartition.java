@@ -138,18 +138,13 @@ class PipelinedSubpartition extends ResultSubpartition {
 			}
 
 			Buffer buffer = bufferConsumer.build();
-			int consumedBuffers = 0;
 			if (bufferConsumer.isFinished()) {
-				consumedBuffers = 1;
 				buffers.pop().close();
 				decreaseBuffersInBacklogUnsafe(bufferConsumer.isBuffer());
 			}
-			else {
-				LOG.error("something bad is gonna happen");
-			}
 
 			updateStatistics(buffer);
-			return new BufferAndBacklog(buffer, consumedBuffers, getBuffersInBacklog(), _nextBufferIsEvent());
+			return new BufferAndBacklog(buffer, getBuffersInBacklog(), _nextBufferIsEvent());
 		}
 	}
 

@@ -135,7 +135,6 @@ public class PartitionRequestQueueTest {
 		public BufferAndBacklog getNextBuffer() {
 			return new BufferAndBacklog(
 				TestBufferFactory.createBuffer(10),
-				1,
 				buffersInBacklog,
 				false);
 		}
@@ -154,7 +153,6 @@ public class PartitionRequestQueueTest {
 		public BufferAndBacklog getNextBuffer() {
 			return new BufferAndBacklog(
 				TestBufferFactory.createBuffer(10).readOnlySlice(),
-				1,
 				buffersInBacklog,
 				false);
 		}

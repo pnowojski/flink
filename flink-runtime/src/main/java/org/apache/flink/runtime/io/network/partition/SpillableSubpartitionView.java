@@ -143,7 +143,6 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 		Buffer current = null;
 		boolean nextBufferIsEvent = false;
 		int newBacklog = 0; // this is always correct if current is non-null!
-		int consumedBuffers = 0;
 
 		synchronized (buffers) {
 			if (isReleased.get()) {
@@ -152,7 +151,6 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 				current = nextBuffer.build();
 				if (nextBuffer.isFinished()) {
 					newBacklog = parent.decreaseBuffersInBacklogUnsafe(nextBuffer.isBuffer());
-					consumedBuffers = 1;
 					nextBuffer.close();
 					nextBuffer = buffers.poll();
 				}
@@ -166,7 +164,7 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 				// if we are spilled (but still process a non-spilled nextBuffer), we don't know the
 				// state of nextBufferIsEvent...
 				if (spilledView == null) {
-					return new BufferAndBacklog(current, consumedBuffers, newBacklog, nextBufferIsEvent);
+					return new BufferAndBacklog(current, newBacklog, nextBufferIsEvent);
 				}
 			}
 		} // else: spilled
@@ -174,7 +172,7 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 		SpilledSubpartitionView spilled = spilledView;
 		if (spilled != null) {
 			if (current != null) {
-				return new BufferAndBacklog(current, consumedBuffers, newBacklog, spilled.nextBufferIsEvent());
+				return new BufferAndBacklog(current, newBacklog, spilled.nextBufferIsEvent());
 			} else {
 				return spilled.getNextBuffer();
 			}

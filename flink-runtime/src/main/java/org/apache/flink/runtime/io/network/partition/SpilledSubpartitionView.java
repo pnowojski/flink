@@ -148,7 +148,7 @@ class SpilledSubpartitionView implements ResultSubpartitionView, NotificationLis
 		}
 
 		int newBacklog = parent.decreaseBuffersInBacklog(current);
-		return new BufferAndBacklog(current, 1, newBacklog, nextBufferIsEvent);
+		return new BufferAndBacklog(current, newBacklog, nextBufferIsEvent);
 	}
 
 	@Nullable

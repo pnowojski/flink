@@ -192,7 +192,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 			}
 		}
 
-		long remaining = numBuffersAvailable.addAndGet(-next.consumedBuffers());
+		long remaining = numBuffersAvailable.decrementAndGet();
 
 		if (remaining >= 0) {
 			numBytesIn.inc(next.buffer().getSizeUnsafe());
