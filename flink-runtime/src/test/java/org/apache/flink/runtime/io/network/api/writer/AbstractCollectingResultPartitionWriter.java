@@ -63,11 +63,13 @@ public abstract class AbstractCollectingResultPartitionWriter implements ResultP
 	@Override
 	public void addBufferConsumer(BufferConsumer bufferConsumer, int targetChannel) throws IOException {
 		checkState(targetChannel < getNumberOfSubpartitions());
-
 		bufferConsumers.add(bufferConsumer);
+		processBufferConsumers();
+	}
 
+	private void processBufferConsumers() throws IOException {
 		while (!bufferConsumers.isEmpty()) {
-			bufferConsumer = bufferConsumers.peek();
+			BufferConsumer bufferConsumer = bufferConsumers.peek();
 			Buffer buffer = bufferConsumer.build();
 			try {
 				deserializeBuffer(buffer);
@@ -79,6 +81,15 @@ public abstract class AbstractCollectingResultPartitionWriter implements ResultP
 			finally {
 				buffer.recycleBuffer();
 			}
+		}
+	}
+
+	@Override
+	public void flush() {
+		try {
+			processBufferConsumers();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 

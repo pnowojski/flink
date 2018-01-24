@@ -63,8 +63,18 @@ class PipelinedSubpartition extends ResultSubpartition {
 	}
 
 	@Override
+	public void flush() {
+		synchronized (buffers) {
+			if (readView != null) {
+				readView.notifyDataAvailable();
+			}
+		}
+	}
+
+	@Override
 	public void finish() throws IOException {
 		add(EventSerializer.toBufferConsumer(EndOfPartitionEvent.INSTANCE), true);
+		flush();
 		LOG.debug("Finished {}.", this);
 	}
 
@@ -86,9 +96,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 				isFinished = true;
 			}
 
-			if (readView != null) {
-				readView.notifyBuffersAvailable(1);
-			}
+			maybeNotify(false);
 		}
 
 		return true;
@@ -127,19 +135,37 @@ class PipelinedSubpartition extends ResultSubpartition {
 	@Nullable
 	BufferAndBacklog pollBuffer() {
 		synchronized (buffers) {
-			BufferConsumer bufferConsumer = buffers.peek();
-			if (bufferConsumer == null) {
+			Buffer buffer = null;
+
+			while (!buffers.isEmpty()) {
+				BufferConsumer bufferConsumer = buffers.peek();
+
+				buffer = bufferConsumer.build();
+				checkState(bufferConsumer.isFinished() || buffers.size() == 1,
+					"When there are multiple buffers, an unfinished bufferConsumer can not be at the head of the buffers queue.");
+
+				if (bufferConsumer.isFinished()) {
+					buffers.pop().close();
+					decreaseBuffersInBacklogUnsafe(bufferConsumer.isBuffer());
+				}
+				if (buffer.readableBytes() > 0) {
+					break;
+				}
+				buffer.recycleBuffer();
+				buffer = null;
+				if (!bufferConsumer.isFinished()) {
+					break;
+				}
+			}
+
+			if (buffer == null) {
 				return null;
 			}
 
-			Buffer buffer = bufferConsumer.build();
-			if (bufferConsumer.isFinished()) {
-				buffers.pop().close();
-				decreaseBuffersInBacklogUnsafe(bufferConsumer.isBuffer());
-			}
-
 			updateStatistics(buffer);
-			return new BufferAndBacklog(buffer, getBuffersInBacklog(), _nextBufferIsEvent());
+			// Do not report last remaining buffer on buffers as available to read (assuming it's unfinished).
+			// It will be reported for reading either on flush or when the number of buffers in the will be 2 or more.
+			return new BufferAndBacklog(buffer, getNumberOfFinishedBuffers() > 0, getBuffersInBacklog(), _nextBufferIsEvent());
 		}
 	}
 
@@ -169,8 +195,6 @@ class PipelinedSubpartition extends ResultSubpartition {
 
 	@Override
 	public PipelinedSubpartitionView createReadView(BufferAvailabilityListener availabilityListener) throws IOException {
-		final int queueSize;
-
 		synchronized (buffers) {
 			checkState(!isReleased);
 			checkState(readView == null,
@@ -179,11 +203,11 @@ class PipelinedSubpartition extends ResultSubpartition {
 
 			LOG.debug("Creating read view for subpartition {} of partition {}.", index, parent.getPartitionId());
 
-			queueSize = buffers.size();
 			readView = new PipelinedSubpartitionView(this, availabilityListener);
+			if (!buffers.isEmpty()) {
+				readView.notifyDataAvailable();
+			}
 		}
-
-		readView.notifyBuffersAvailable(queueSize);
 
 		return readView;
 	}
@@ -219,5 +243,25 @@ class PipelinedSubpartition extends ResultSubpartition {
 	public int unsynchronizedGetNumberOfQueuedBuffers() {
 		// since we do not synchronize, the size may actually be lower than 0!
 		return Math.max(buffers.size(), 0);
+	}
+
+	private void maybeNotify(boolean justCreated) {
+		if (readView == null) {
+			return;
+		}
+		// Notify only when we added first finished buffer.
+		int finishedBuffers = getNumberOfFinishedBuffers();
+		if (finishedBuffers == 1 || (finishedBuffers > 0 && justCreated)) {
+			readView.notifyDataAvailable();
+		}
+	}
+
+	private int getNumberOfFinishedBuffers() {
+		if (buffers.size() == 1 && buffers.peekLast().isFinished()) {
+			return 1;
+		}
+
+		// We assume that only last buffer is not finished.
+		return Math.max(0, buffers.size() - 1);
 	}
 }

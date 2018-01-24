@@ -69,4 +69,9 @@ public interface ResultPartitionWriter {
 			bufferConsumer.close();
 		}
 	}
+
+	/**
+	 * Manually trigger consumption from enqueued {@link BufferConsumer BufferConsumers}.
+	 */
+	void flush();
 }
