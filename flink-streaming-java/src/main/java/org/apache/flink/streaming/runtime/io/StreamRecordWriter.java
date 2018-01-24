@@ -54,7 +54,7 @@ public class StreamRecordWriter<T extends IOReadableWritable> extends RecordWrit
 	}
 
 	public StreamRecordWriter(ResultPartitionWriter writer, ChannelSelector<T> channelSelector,
-								long timeout, String taskName) {
+							  long timeout, String taskName) {
 
 		super(writer, channelSelector);
 
@@ -71,7 +71,7 @@ public class StreamRecordWriter<T extends IOReadableWritable> extends RecordWrit
 		else {
 			flushAlways = false;
 			String threadName = taskName == null ?
-								DEFAULT_OUTPUT_FLUSH_THREAD_NAME : "Output Timeout Flusher - " + taskName;
+				DEFAULT_OUTPUT_FLUSH_THREAD_NAME : "Output Timeout Flusher - " + taskName;
 
 			outputFlusher = new OutputFlusher(threadName, timeout);
 			outputFlusher.start();
@@ -109,6 +109,7 @@ public class StreamRecordWriter<T extends IOReadableWritable> extends RecordWrit
 	 * Closes the writer. This stops the flushing thread (if there is one).
 	 */
 	public void close() {
+		clearBuffers();
 		// make sure we terminate the thread in any case
 		if (outputFlusher != null) {
 			outputFlusher.terminate();

@@ -19,17 +19,16 @@
 package org.apache.flink.runtime.io.network.netty;
 
 import org.apache.flink.runtime.io.network.NetworkSequenceViewReader;
-import org.apache.flink.runtime.io.network.partition.ResultSubpartition.BufferAndBacklog;
 import org.apache.flink.runtime.io.network.partition.BufferAvailabilityListener;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionProvider;
+import org.apache.flink.runtime.io.network.partition.ResultSubpartition.BufferAndBacklog;
 import org.apache.flink.runtime.io.network.partition.ResultSubpartitionView;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannel.BufferAndAvailability;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannelID;
 import org.apache.flink.runtime.io.network.partition.consumer.LocalInputChannel;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Simple wrapper for the subpartition view used in the old network mode.
@@ -42,8 +41,6 @@ class SequenceNumberingViewReader implements BufferAvailabilityListener, Network
 	private final Object requestLock = new Object();
 
 	private final InputChannelID receiverId;
-
-	private final AtomicLong numBuffersAvailable = new AtomicLong();
 
 	private final PartitionRequestQueue requestQueue;
 
@@ -110,14 +107,8 @@ class SequenceNumberingViewReader implements BufferAvailabilityListener, Network
 	public BufferAndAvailability getNextBuffer() throws IOException, InterruptedException {
 		BufferAndBacklog next = subpartitionView.getNextBuffer();
 		if (next != null) {
-			long remaining = numBuffersAvailable.decrementAndGet();
 			sequenceNumber++;
-
-			if (remaining >= 0) {
-				return new BufferAndAvailability(next.buffer(), remaining > 0, next.buffersInBacklog());
-			} else {
-				throw new IllegalStateException("no buffer available");
-			}
+			return new BufferAndAvailability(next.buffer(), next.isMoreAvailable(), next.buffersInBacklog());
 		} else {
 			return null;
 		}
@@ -144,11 +135,8 @@ class SequenceNumberingViewReader implements BufferAvailabilityListener, Network
 	}
 
 	@Override
-	public void notifyBuffersAvailable(long numBuffers) {
-		// if this request made the channel non-empty, notify the input gate
-		if (numBuffers > 0 && numBuffersAvailable.getAndAdd(numBuffers) == 0) {
-			requestQueue.notifyReaderNonEmpty(this);
-		}
+	public void notifyDataAvailable() {
+		requestQueue.notifyReaderNonEmpty(this);
 	}
 
 	@Override
@@ -156,7 +144,6 @@ class SequenceNumberingViewReader implements BufferAvailabilityListener, Network
 		return "SequenceNumberingViewReader{" +
 			"requestLock=" + requestLock +
 			", receiverId=" + receiverId +
-			", numBuffersAvailable=" + numBuffersAvailable.get() +
 			", sequenceNumber=" + sequenceNumber +
 			'}';
 	}
