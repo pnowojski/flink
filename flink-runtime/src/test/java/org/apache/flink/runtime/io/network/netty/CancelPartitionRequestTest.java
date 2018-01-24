@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.runtime.io.network.netty.NettyMessage.CancelPartitionRequest;
 import static org.apache.flink.runtime.io.network.netty.NettyMessage.PartitionRequest;
-import static org.apache.flink.runtime.io.network.netty.NettyMessage.AddCredit;
 import static org.apache.flink.runtime.io.network.netty.NettyTestUtil.connect;
 import static org.apache.flink.runtime.io.network.netty.NettyTestUtil.initServerAndClient;
 import static org.apache.flink.runtime.io.network.netty.NettyTestUtil.shutdown;
@@ -194,7 +193,7 @@ public class CancelPartitionRequestTest {
 		public BufferAndBacklog getNextBuffer() throws IOException, InterruptedException {
 			Buffer buffer = bufferProvider.requestBufferBlocking();
 			buffer.setSize(buffer.getMaxCapacity()); // fake some data
-			return new BufferAndBacklog(buffer, 0, false);
+			return new BufferAndBacklog(buffer, 1,0, false);
 		}
 
 		@Override

@@ -206,8 +206,8 @@ public class RecordWriter<T extends IOReadableWritable> {
 		bufferConsumers[targetChannel] = Optional.empty();
 
 		numBytesOut.inc(bufferConsumer.getWrittenBytes());
-		serializer.clear();
 		targetPartition.addBufferConsumer(bufferConsumer, targetChannel);
+		serializer.clear();
 		return true;
 	}
 

@@ -170,12 +170,14 @@ public abstract class ResultSubpartition {
 	public static final class BufferAndBacklog {
 
 		private final Buffer buffer;
+		private final int consumedBuffers;
 		private final int buffersInBacklog;
 		private final boolean nextBufferIsEvent;
 
-		public BufferAndBacklog(Buffer buffer, int buffersInBacklog, boolean nextBufferIsEvent) {
+		public BufferAndBacklog(Buffer buffer, int consumedBuffers, int buffersInBacklog, boolean nextBufferIsEvent) {
 			this.buffer = checkNotNull(buffer);
 			this.buffersInBacklog = buffersInBacklog;
+			this.consumedBuffers = consumedBuffers;
 			this.nextBufferIsEvent = nextBufferIsEvent;
 		}
 
@@ -183,9 +185,14 @@ public abstract class ResultSubpartition {
 			return buffer;
 		}
 
+		public int consumedBuffers() {
+			return consumedBuffers;
+		}
+
 		public int buffersInBacklog() {
 			return buffersInBacklog;
 		}
+
 
 		public boolean nextBufferIsEvent() {
 			return nextBufferIsEvent;
