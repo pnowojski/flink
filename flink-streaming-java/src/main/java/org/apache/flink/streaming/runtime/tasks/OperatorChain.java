@@ -155,7 +155,6 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 				for (RecordWriterOutput<?> output : this.streamOutputs) {
 					if (output != null) {
 						output.close();
-						output.clearBuffers();
 					}
 				}
 			}
@@ -237,16 +236,8 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 	 * <p>This method should never fail.
 	 */
 	public void releaseOutputs() {
-		try {
-			for (RecordWriterOutput<?> streamOutput : streamOutputs) {
-				streamOutput.close();
-			}
-		}
-		finally {
-			// make sure that we release the buffers in any case
-			for (RecordWriterOutput<?> output : streamOutputs) {
-				output.clearBuffers();
-			}
+		for (RecordWriterOutput<?> streamOutput : streamOutputs) {
+			streamOutput.close();
 		}
 	}
 
