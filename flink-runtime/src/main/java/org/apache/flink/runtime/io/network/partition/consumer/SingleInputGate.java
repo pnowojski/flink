@@ -41,6 +41,7 @@ import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
 import org.apache.flink.runtime.metrics.groups.TaskIOMetricGroup;
 import org.apache.flink.runtime.taskmanager.TaskActions;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,8 +50,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -137,6 +140,12 @@ public class SingleInputGate implements InputGate {
 
 	/** Channels, which notified this input gate about available data. */
 	private final ArrayDeque<InputChannel> inputChannelsWithData = new ArrayDeque<>();
+
+	/**
+	 * Field guaranteeing uniqueness for inputChannelsWithData queue. Both of those fields should be unified
+	 * onto one.
+	 */
+	private final Set<Integer> enqueuedInputChannelsWithData = new HashSet<>();
 
 	private final BitSet channelsWithEndOfPartitionEvents;
 
@@ -284,7 +293,7 @@ public class SingleInputGate implements InputGate {
 
 		this.networkBufferPool = checkNotNull(networkBufferPool);
 		this.networkBuffersPerChannel = networkBuffersPerChannel;
-		
+
 		synchronized (requestLock) {
 			for (InputChannel inputChannel : inputChannels.values()) {
 				if (inputChannel instanceof RemoteInputChannel) {
@@ -492,7 +501,6 @@ public class SingleInputGate implements InputGate {
 
 		InputChannel currentChannel;
 		boolean moreAvailable;
-
 		synchronized (inputChannelsWithData) {
 			while (inputChannelsWithData.size() == 0) {
 				if (isReleased) {
@@ -503,17 +511,16 @@ public class SingleInputGate implements InputGate {
 			}
 
 			currentChannel = inputChannelsWithData.remove();
+			enqueuedInputChannelsWithData.remove(currentChannel.getChannelIndex());
 			moreAvailable = inputChannelsWithData.size() > 0;
 		}
 
 		final BufferAndAvailability result = currentChannel.getNextBuffer();
-
 		// Sanity check that notifications only happen when data is available
 		if (result == null) {
 			throw new IllegalStateException("Bug in input gate/channel logic: input gate got " +
 					"notified by channel about available data, but none was available.");
 		}
-
 		// this channel was now removed from the non-empty channels queue
 		// we re-add it in case it has more data, because in that case no "non-empty" notification
 		// will come for that channel
@@ -582,9 +589,13 @@ public class SingleInputGate implements InputGate {
 		int availableChannels;
 
 		synchronized (inputChannelsWithData) {
+			if (enqueuedInputChannelsWithData.contains(channel.getChannelIndex())) {
+				return;
+			}
 			availableChannels = inputChannelsWithData.size();
 
 			inputChannelsWithData.add(channel);
+			enqueuedInputChannelsWithData.add(channel.getChannelIndex());
 
 			if (availableChannels == 0) {
 				inputChannelsWithData.notifyAll();
