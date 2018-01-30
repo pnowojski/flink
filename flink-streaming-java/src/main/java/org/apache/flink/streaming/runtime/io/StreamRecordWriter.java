@@ -53,9 +53,11 @@ public class StreamRecordWriter<T extends IOReadableWritable> extends RecordWrit
 		this(writer, channelSelector, timeout, null);
 	}
 
-	public StreamRecordWriter(ResultPartitionWriter writer, ChannelSelector<T> channelSelector,
-							  long timeout, String taskName) {
-
+	public StreamRecordWriter(
+			ResultPartitionWriter writer,
+			ChannelSelector<T> channelSelector,
+			long timeout,
+			String taskName) {
 		super(writer, channelSelector);
 
 		checkArgument(timeout >= -1);
