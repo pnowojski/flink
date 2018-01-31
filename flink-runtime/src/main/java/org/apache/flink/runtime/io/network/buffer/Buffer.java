@@ -60,11 +60,19 @@ public interface Buffer {
 	void tagAsEvent();
 
 	/**
-	 * Returns the underlying memory segment.
+	 * Returns the underlying memory segment. This method is dangerous since it ignores read only protections and omits
+	 * slices. Use it only along the {@link #getMemorySegmentOffset()}.
 	 *
 	 * @return the memory segment backing this buffer
 	 */
+	@Deprecated
 	MemorySegment getMemorySegment();
+
+	/**
+	 * @return the offset where this (potential slice) {@link Buffer}'s data start in the underlying memory segment.
+	 */
+	@Deprecated
+	int getMemorySegmentOffset();
 
 	/**
 	 * Gets the buffer's recycler.

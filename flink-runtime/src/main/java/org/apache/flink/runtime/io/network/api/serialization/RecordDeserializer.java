@@ -19,11 +19,10 @@
 
 package org.apache.flink.runtime.io.network.api.serialization;
 
-import java.io.IOException;
-
 import org.apache.flink.core.io.IOReadableWritable;
-import org.apache.flink.core.memory.MemorySegment;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
+
+import java.io.IOException;
 
 /**
  * Interface for turning sequences of memory segments into records.
@@ -54,8 +53,6 @@ public interface RecordDeserializer<T extends IOReadableWritable> {
 	}
 	
 	DeserializationResult getNextRecord(T target) throws IOException;
-
-	void setNextMemorySegment(MemorySegment segment, int numBytes) throws IOException;
 
 	void setNextBuffer(Buffer buffer) throws IOException;
 
