@@ -165,7 +165,7 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 			}
 			else {
 				next = Optional.ofNullable(currentBuffered.getNext());
-				if (next == null) {
+				if (!next.isPresent()) {
 					completeBufferedSequence();
 					return getNextNonBlocked();
 				}
