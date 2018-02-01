@@ -52,8 +52,8 @@ import java.util.Optional;
 import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.createFilledBufferConsumer;
 import static org.apache.flink.runtime.io.network.partition.InputChannelTestUtils.createDummyConnectionManager;
 import static org.apache.flink.runtime.io.network.partition.InputChannelTestUtils.createResultPartitionManager;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -117,7 +117,7 @@ public class InputGateFairnessTest {
 			assertTrue(max == min || max == min+1);
 		}
 
-		assertNull(gate.getNextBufferOrEvent());
+		assertFalse(gate.getNextBufferOrEvent().isPresent());
 	}
 
 	@Test
@@ -233,7 +233,7 @@ public class InputGateFairnessTest {
 			assertTrue(max == min || max == min+1);
 		}
 
-		assertNull(gate.getNextBufferOrEvent());
+		assertFalse(gate.getNextBufferOrEvent().isPresent());
 	}
 
 	@Test
