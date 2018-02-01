@@ -52,6 +52,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
@@ -448,8 +449,9 @@ public class SingleInputGateTest {
 		boolean isBuffer,
 		int channelIndex) throws IOException, InterruptedException {
 
-		final BufferOrEvent boe = inputGate.getNextBufferOrEvent();
-		assertEquals(isBuffer, boe.isBuffer());
-		assertEquals(channelIndex, boe.getChannelIndex());
+		final Optional<BufferOrEvent> bufferOrEvent = inputGate.getNextBufferOrEvent();
+		assertTrue(bufferOrEvent.isPresent());
+		assertEquals(isBuffer, bufferOrEvent.get().isBuffer());
+		assertEquals(channelIndex, bufferOrEvent.get().getChannelIndex());
 	}
 }
