@@ -74,7 +74,6 @@ class PipelinedSubpartition extends ResultSubpartition {
 	@Override
 	public void finish() throws IOException {
 		add(EventSerializer.toBufferConsumer(EndOfPartitionEvent.INSTANCE), true);
-		flush();
 		LOG.debug("Finished {}.", this);
 	}
 
@@ -94,9 +93,11 @@ class PipelinedSubpartition extends ResultSubpartition {
 
 			if (finish) {
 				isFinished = true;
+				notifyDataAvailable();
 			}
-
-			maybeNotify(false);
+			else {
+				maybeNotifyDataAvailable(false);
+			}
 		}
 
 		return true;
@@ -245,13 +246,16 @@ class PipelinedSubpartition extends ResultSubpartition {
 		return Math.max(buffers.size(), 0);
 	}
 
-	private void maybeNotify(boolean justCreated) {
-		if (readView == null) {
-			return;
-		}
+	private void maybeNotifyDataAvailable(boolean justCreated) {
 		// Notify only when we added first finished buffer.
 		int finishedBuffers = getNumberOfFinishedBuffers();
 		if (finishedBuffers == 1 || (finishedBuffers > 0 && justCreated)) {
+			notifyDataAvailable();
+		}
+	}
+
+	private void notifyDataAvailable() {
+		if (readView != null) {
 			readView.notifyDataAvailable();
 		}
 	}
