@@ -123,10 +123,7 @@ public class StreamTestSingleInputGate<T> extends TestSingleInputGate {
 						AbstractEvent event = input.getEvent();
 						return Optional.of(new BufferAndAvailability(EventSerializer.toBuffer(event), moreAvailable, 0));
 					} else {
-						synchronized (inputQueue) {
-							inputQueue.wait();
-							return answer(invocationOnMock);
-						}
+						return Optional.empty();
 					}
 				}
 			};
