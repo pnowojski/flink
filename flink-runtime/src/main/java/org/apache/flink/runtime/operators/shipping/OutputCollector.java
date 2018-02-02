@@ -81,8 +81,7 @@ public class OutputCollector<T> implements Collector<T> {
 	@Override
 	public void close() {
 		for (RecordWriter<?> writer : writers) {
-			writer.flush();
-			writer.clearBuffers();
+			writer.close();
 		}
 	}
 
