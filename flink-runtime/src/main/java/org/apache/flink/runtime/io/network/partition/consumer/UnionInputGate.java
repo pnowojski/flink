@@ -264,7 +264,6 @@ public class UnionInputGate implements InputGate, InputGateListener {
 		int availableInputGates;
 
 		synchronized (inputGatesWithData) {
-			checkState(!inputGate.isFinished());
 			if (enqueuedInputGatesWithData.contains(inputGate)) {
 				return;
 			}

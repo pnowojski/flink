@@ -555,7 +555,6 @@ public class SingleInputGate implements InputGate {
 
 				if (channelsWithEndOfPartitionEvents.cardinality() == numberOfInputChannels) {
 					hasReceivedAllEndOfPartitionEvents = true;
-					checkState(!moreAvailable);
 				}
 
 				currentChannel.notifySubpartitionConsumed();
