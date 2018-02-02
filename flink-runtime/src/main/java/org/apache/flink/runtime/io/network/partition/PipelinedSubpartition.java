@@ -142,8 +142,15 @@ class PipelinedSubpartition extends ResultSubpartition {
 				BufferConsumer bufferConsumer = buffers.peek();
 
 				buffer = bufferConsumer.build();
-				checkState(bufferConsumer.isFinished() || buffers.size() == 1,
-					"When there are multiple buffers, an unfinished bufferConsumer can not be at the head of the buffers queue.");
+				if (!bufferConsumer.isFinished() && buffers.size() != 1) {
+					for (BufferConsumer consumer : buffers) {
+						System.out.println(consumer);
+						System.out.println(consumer.isBuffer());
+						System.out.println(consumer.isFinished());
+						System.out.println(consumer.build());
+					}
+					throw new IllegalStateException(String.valueOf("When there are multiple buffers, an unfinished bufferConsumer can not be at the head of the buffers queue."));
+				}
 
 				if (bufferConsumer.isFinished()) {
 					buffers.pop().close();
