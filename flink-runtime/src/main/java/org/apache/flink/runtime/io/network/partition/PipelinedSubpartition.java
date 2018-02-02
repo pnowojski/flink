@@ -86,6 +86,16 @@ class PipelinedSubpartition extends ResultSubpartition {
 				return false;
 			}
 
+			if (!buffers.isEmpty()) {
+				BufferConsumer peek = buffers.peek();
+				peek.update();
+				if (!peek.isFinished()) {
+					dumpBuffers();
+					dumpBuffer(bufferConsumer);
+					throw new IllegalStateException("Ops! Adding buffer consumer over an unfinished one");
+				}
+			}
+
 			// Add the bufferConsumer and update the stats
 			buffers.add(bufferConsumer);
 			updateStatistics(bufferConsumer);
@@ -143,12 +153,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 
 				buffer = bufferConsumer.build();
 				if (!bufferConsumer.isFinished() && buffers.size() != 1) {
-					for (BufferConsumer consumer : buffers) {
-						System.out.println(consumer);
-						System.out.println(consumer.isBuffer());
-						System.out.println(consumer.isFinished());
-						System.out.println(consumer.build());
-					}
+					dumpBuffers();
 					throw new IllegalStateException(String.valueOf("When there are multiple buffers, an unfinished bufferConsumer can not be at the head of the buffers queue."));
 				}
 
@@ -175,6 +180,28 @@ class PipelinedSubpartition extends ResultSubpartition {
 			// It will be reported for reading either on flush or when the number of buffers in the will be 2 or more.
 			return new BufferAndBacklog(buffer, getNumberOfFinishedBuffers() > 0, getBuffersInBacklog(), _nextBufferIsEvent());
 		}
+	}
+
+	private void dumpBuffers() {
+		StringBuilder builder = new StringBuilder();
+
+		for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+			builder.append(ste + "\n");
+		}
+		System.out.println(builder.toString());
+
+		for (BufferConsumer consumer : buffers) {
+			dumpBuffer(consumer);
+		}
+	}
+
+	private void dumpBuffer(BufferConsumer consumer) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(consumer + "\n");
+		builder.append(consumer.isBuffer() + " ");
+		builder.append(consumer.isFinished() + " ");
+		builder.append(consumer.build() + "\n");
+		System.out.println(builder.toString());
 	}
 
 	boolean nextBufferIsEvent() {

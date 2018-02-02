@@ -115,6 +115,10 @@ public class BufferConsumer implements Closeable {
 		return writerPosition.getCached();
 	}
 
+	public void update() {
+		writerPosition.update();
+	}
+
 	private static class CachedPositionMarker {
 		private final PositionMarker positionMarker;
 
