@@ -30,7 +30,6 @@ import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import org.apache.flink.runtime.metrics.groups.TaskIOMetricGroup;
 import org.apache.flink.util.XORShiftRandom;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Random;
@@ -51,7 +50,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  *
  * @param <T> the type of the record that can be emitted with this record writer
  */
-public class RecordWriter<T extends IOReadableWritable> implements Closeable {
+public class RecordWriter<T extends IOReadableWritable> {
 
 	protected final ResultPartitionWriter targetPartition;
 
@@ -67,8 +66,6 @@ public class RecordWriter<T extends IOReadableWritable> implements Closeable {
 	private final Random RNG = new XORShiftRandom();
 
 	private Counter numBytesOut = new SimpleCounter();
-
-	private boolean isClosed;
 
 	public RecordWriter(ResultPartitionWriter writer) {
 		this(writer, new RoundRobinChannelSelector<T>());
@@ -166,16 +163,6 @@ public class RecordWriter<T extends IOReadableWritable> implements Closeable {
 		}
 	}
 
-	@Override
-	public void close() {
-		if (isClosed) {
-			return;
-		}
-		clearBuffers();
-		flush();
-		isClosed = true;
-	}
-
 	/**
 	 * Sets the metric group for this RecordWriter.
 	 * @param metrics
@@ -208,7 +195,6 @@ public class RecordWriter<T extends IOReadableWritable> implements Closeable {
 
 	private BufferBuilder requestNewBufferBuilder(int targetChannel) throws IOException, InterruptedException {
 		checkState(!bufferBuilders[targetChannel].isPresent());
-		checkState(!isClosed);
 		BufferBuilder bufferBuilder = targetPartition.getBufferProvider().requestBufferBuilderBlocking();
 		bufferBuilders[targetChannel] = Optional.of(bufferBuilder);
 		targetPartition.addBufferConsumer(bufferBuilder.createBufferConsumer(), targetChannel);

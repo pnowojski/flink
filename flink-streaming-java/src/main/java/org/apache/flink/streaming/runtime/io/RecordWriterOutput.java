@@ -154,4 +154,8 @@ public class RecordWriterOutput<OUT> implements Output<StreamRecord<OUT>> {
 	public void close() {
 		recordWriter.close();
 	}
+
+	public void clearBuffers() {
+		recordWriter.clearBuffers();
+	}
 }
