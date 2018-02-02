@@ -94,7 +94,7 @@ public class RescalingITCase extends TestLogger {
 
 	@Parameterized.Parameters
 	public static Object[] data() {
-		return new Object[]{"filesystem", "rocksdb"};
+		return new Object[]{"filesystem"};
 	}
 
 	@Parameterized.Parameter
