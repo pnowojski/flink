@@ -217,10 +217,11 @@ public class StreamTaskTestHarness<OUT> {
 	 */
 	public void invoke(StreamMockEnvironment mockEnv, @Nullable TaskStateSnapshot initialState) throws Exception {
 		this.mockEnv = checkNotNull(mockEnv);
-		this.task = taskFactory.apply(mockEnv, initialState);
 
 		initializeInputs();
 		initializeOutput();
+
+		this.task = taskFactory.apply(mockEnv, initialState);
 
 		taskThread = new TaskThread(task);
 		taskThread.start();
