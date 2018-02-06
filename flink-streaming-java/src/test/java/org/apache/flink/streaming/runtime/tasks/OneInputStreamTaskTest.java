@@ -254,7 +254,7 @@ public class OneInputStreamTaskTest extends TestLogger {
 		WatermarkGeneratingTestOperator watermarkOperator = new WatermarkGeneratingTestOperator();
 		TriggerableFailOnWatermarkTestOperator tailOperator = new TriggerableFailOnWatermarkTestOperator();
 
-		testHarness.setupOperatorChain(new OperatorID(42L, 42L), headOperator)
+		testHarness.setupOperatorChain(new OperatorID(42L, 42L), headOperator, StringSerializer.INSTANCE)
 			.chain(new OperatorID(4711L, 42L), watermarkOperator, StringSerializer.INSTANCE)
 			.chain(new OperatorID(123L, 123L), tailOperator, StringSerializer.INSTANCE)
 			.finish();

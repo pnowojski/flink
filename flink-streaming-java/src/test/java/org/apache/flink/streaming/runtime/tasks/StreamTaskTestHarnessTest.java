@@ -18,8 +18,8 @@
 
 package org.apache.flink.streaming.runtime.tasks;
 
-import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeutils.base.StringSerializer;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
@@ -48,21 +48,21 @@ public class StreamTaskTestHarnessTest {
 			// expected
 		}
 		try {
-			harness.setupOperatorChain(new OperatorID(), new TestOperator());
+			harness.setupOperatorChain(new OperatorID(), new TestOperator(), StringSerializer.INSTANCE);
 			Assert.fail();
 		} catch (IllegalStateException expected) {
 			// expected
 		}
 		try {
-			harness.setupOperatorChain(new OperatorID(), new TwoInputTestOperator());
+			harness.setupOperatorChain(new OperatorID(), new TwoInputTestOperator(), StringSerializer.INSTANCE);
 			Assert.fail();
 		} catch (IllegalStateException expected) {
 			// expected
 		}
 
 		harness = new StreamTaskTestHarness<>(OneInputStreamTask::new, BasicTypeInfo.STRING_TYPE_INFO);
-		harness.setupOperatorChain(new OperatorID(), new TestOperator())
-			.chain(new OperatorID(), new TestOperator(), BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()));
+		harness.setupOperatorChain(new OperatorID(), new TestOperator(), StringSerializer.INSTANCE)
+			.chain(new OperatorID(), new TestOperator(), StringSerializer.INSTANCE);
 
 		try {
 			harness.setupOutputForSingletonOperatorChain();
@@ -71,21 +71,21 @@ public class StreamTaskTestHarnessTest {
 			// expected
 		}
 		try {
-			harness.setupOperatorChain(new OperatorID(), new TestOperator());
+			harness.setupOperatorChain(new OperatorID(), new TestOperator(), StringSerializer.INSTANCE);
 			Assert.fail();
 		} catch (IllegalStateException expected) {
 			// expected
 		}
 		try {
-			harness.setupOperatorChain(new OperatorID(), new TwoInputTestOperator());
+			harness.setupOperatorChain(new OperatorID(), new TwoInputTestOperator(), StringSerializer.INSTANCE);
 			Assert.fail();
 		} catch (IllegalStateException expected) {
 			// expected
 		}
 
 		harness = new StreamTaskTestHarness<>(TwoInputStreamTask::new, BasicTypeInfo.STRING_TYPE_INFO);
-		harness.setupOperatorChain(new OperatorID(), new TwoInputTestOperator())
-			.chain(new OperatorID(), new TestOperator(), BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()));
+		harness.setupOperatorChain(new OperatorID(), new TwoInputTestOperator(), StringSerializer.INSTANCE)
+			.chain(new OperatorID(), new TestOperator(), StringSerializer.INSTANCE);
 
 		try {
 			harness.setupOutputForSingletonOperatorChain();
@@ -94,13 +94,13 @@ public class StreamTaskTestHarnessTest {
 			// expected
 		}
 		try {
-			harness.setupOperatorChain(new OperatorID(), new TestOperator());
+			harness.setupOperatorChain(new OperatorID(), new TestOperator(), StringSerializer.INSTANCE);
 			Assert.fail();
 		} catch (IllegalStateException expected) {
 			// expected
 		}
 		try {
-			harness.setupOperatorChain(new OperatorID(), new TwoInputTestOperator());
+			harness.setupOperatorChain(new OperatorID(), new TwoInputTestOperator(), StringSerializer.INSTANCE);
 			Assert.fail();
 		} catch (IllegalStateException expected) {
 			// expected

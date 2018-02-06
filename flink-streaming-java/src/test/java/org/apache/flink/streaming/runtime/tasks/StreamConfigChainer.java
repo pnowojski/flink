@@ -44,33 +44,32 @@ public class StreamConfigChainer {
 	private final Map<Integer, StreamConfig> chainedConfigs = new HashMap<>();
 
 	private StreamConfig tailConfig;
+	private TypeSerializer<?> tailOutputSerializer;
 	private int chainIndex = 0;
 
-	public StreamConfigChainer(OperatorID headOperatorID, StreamOperator<?> headOperator, StreamConfig headConfig) {
+	public StreamConfigChainer(
+			OperatorID headOperatorID,
+			StreamOperator<?> headOperator,
+			StreamConfig headConfig,
+			TypeSerializer<?> headOutputSerializer) {
 		this.headConfig = checkNotNull(headConfig);
 		this.tailConfig = checkNotNull(headConfig);
+		this.tailOutputSerializer = checkNotNull(headOutputSerializer);
 
-		head(headOperator, headOperatorID);
+		head(headOperatorID, headOperator, headOutputSerializer);
 	}
 
-	private void head(StreamOperator<?> headOperator, OperatorID headOperatorID) {
-		headConfig.setStreamOperator(headOperator);
-		headConfig.setOperatorID(headOperatorID);
-		headConfig.setChainStart();
-		headConfig.setChainIndex(chainIndex);
+	private void head(OperatorID headOperatorID, StreamOperator<?> headOperator, TypeSerializer<?> headOutputSerializer) {
+		this.headConfig.setStreamOperator(headOperator);
+		this.headConfig.setOperatorID(headOperatorID);
+		this.headConfig.setChainStart();
+		this.headConfig.setChainIndex(chainIndex);
+		this.headConfig.setTypeSerializerOut(headOutputSerializer);
 	}
 
-	public <T> StreamConfigChainer chain(
+	public <OUT> StreamConfigChainer chain(
 			OperatorID operatorID,
-			OneInputStreamOperator<T, T> operator,
-			TypeSerializer<T> typeSerializer) {
-		return chain(operatorID, operator, typeSerializer, typeSerializer);
-	}
-
-	public <IN, OUT> StreamConfigChainer chain(
-			OperatorID operatorID,
-			OneInputStreamOperator<IN, OUT> operator,
-			TypeSerializer<IN> inputSerializer,
+			OneInputStreamOperator<?, OUT> operator,
 			TypeSerializer<OUT> outputSerializer) {
 		chainIndex++;
 
@@ -85,9 +84,10 @@ public class StreamConfigChainer {
 		tailConfig = new StreamConfig(new Configuration());
 		tailConfig.setStreamOperator(checkNotNull(operator));
 		tailConfig.setOperatorID(checkNotNull(operatorID));
-		tailConfig.setTypeSerializerIn1(inputSerializer);
-		tailConfig.setTypeSerializerOut(outputSerializer);
+		tailConfig.setTypeSerializerIn1(tailOutputSerializer);
+		tailConfig.setTypeSerializerOut(checkNotNull(outputSerializer));
 		tailConfig.setChainIndex(chainIndex);
+		tailOutputSerializer = outputSerializer;
 
 		chainedConfigs.put(chainIndex, tailConfig);
 
@@ -112,6 +112,9 @@ public class StreamConfigChainer {
 		tailConfig.setNumberOfOutputs(1);
 		tailConfig.setOutEdgesInOrder(outEdgesInOrder);
 		tailConfig.setNonChainedOutputs(outEdgesInOrder);
+
+		chainedConfigs.put(chainIndex, tailConfig);
+
 		headConfig.setTransitiveChainedTaskConfigs(chainedConfigs);
 		headConfig.setOutEdgesInOrder(outEdgesInOrder);
 	}
