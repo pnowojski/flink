@@ -21,8 +21,6 @@ package org.apache.flink.runtime.io.network.partition;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync;
-import org.apache.flink.runtime.io.network.api.EndOfPartitionEvent;
-import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
 import org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils;
 import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import org.apache.flink.runtime.taskmanager.TaskActions;
@@ -33,7 +31,6 @@ import org.junit.Test;
 
 import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.createFilledBufferConsumer;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -167,35 +164,6 @@ public class ResultPartitionTest {
 			// should not have notified either
 			verify(notifier, never()).notifyPartitionConsumable(any(JobID.class), any(ResultPartitionID.class), any(TaskActions.class));
 		}
-	}
-
-	/**
-	 * Tests that event buffers are properly added and recycled when broadcasting events
-	 * to multiple channels.
-	 */
-	@Test
-	public void testWriteBufferToAllSubpartitionsReferenceCounting() throws Exception {
-		BufferConsumer bufferConsumer = EventSerializer.toBufferConsumer(EndOfPartitionEvent.INSTANCE);
-
-		ResultPartition partition = new ResultPartition(
-			"TestTask",
-			mock(TaskActions.class),
-			new JobID(),
-			new ResultPartitionID(),
-			ResultPartitionType.PIPELINED,
-			2,
-			2,
-			mock(ResultPartitionManager.class),
-			mock(ResultPartitionConsumableNotifier.class),
-			mock(IOManager.class),
-			false);
-
-		partition.addBufferConsumerToAllSubpartitions(bufferConsumer);
-
-		// release the buffers in the partition
-		partition.release();
-
-		assertTrue(bufferConsumer.isRecycled());
 	}
 
 	@Test
