@@ -49,28 +49,6 @@ public interface ResultPartitionWriter {
 	void addBufferConsumer(BufferConsumer bufferConsumer, int subpartitionIndex) throws IOException;
 
 	/**
-	 * Adds the given bufferConsumer to all available target subpartitions.
-	 *
-	 * <p>The buffer is taken over and used for each of the channels.
-	 * It will be recycled afterwards.
-	 *
-	 * <p>This method takes the ownership of the passed {@code bufferConsumer} and thus is responsible for releasing
-	 * it's resources.
-	 */
-	default void addBufferConsumerToAllSubpartitions(BufferConsumer bufferConsumer) throws IOException {
-		try {
-			for (int subpartition = 0; subpartition < getNumberOfSubpartitions(); subpartition++) {
-				// retain the buffer so that it can be recycled by each channel of targetPartition
-				addBufferConsumer(bufferConsumer.copy(), subpartition);
-			}
-		} finally {
-			// we do not need to further retain the eventBuffer
-			// (it will be recycled after the last channel stops using it)
-			bufferConsumer.close();
-		}
-	}
-
-	/**
 	 * Manually trigger consumption from enqueued {@link BufferConsumer BufferConsumers}.
 	 */
 	void flush();
