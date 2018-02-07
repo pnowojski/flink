@@ -54,8 +54,10 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Future;
 
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkState;
 import static org.junit.Assert.fail;
 
@@ -95,6 +97,14 @@ public class MockEnvironment implements Environment, AutoCloseable {
 	private final ClassLoader userCodeClassLoader;
 
 	private final TaskEventDispatcher taskEventDispatcher = new TaskEventDispatcher();
+
+	private Optional<Class<Throwable>> expectedExternalFailureCause = Optional.empty();
+
+	private Optional<Throwable> actualExternalFailureCause;
+
+	public MockEnvironment() {
+		this("mock-task", 1024 * MemoryManager.DEFAULT_PAGE_SIZE, null, 16);
+	}
 
 	public MockEnvironment(String taskName, long memorySize, MockInputSplitProvider inputSplitProvider, int bufferSize) {
 		this(taskName, memorySize, inputSplitProvider, bufferSize, new Configuration(), new ExecutionConfig());
@@ -321,7 +331,10 @@ public class MockEnvironment implements Environment, AutoCloseable {
 
 	@Override
 	public void failExternally(Throwable cause) {
-		throw new UnsupportedOperationException("MockEnvironment does not support external task failure.");
+		if (!expectedExternalFailureCause.isPresent()) {
+			throw new UnsupportedOperationException("MockEnvironment does not support external task failure.");
+		}
+		checkArgument(expectedExternalFailureCause.get().isInstance(cause));
 	}
 
 	@Override
@@ -335,5 +348,9 @@ public class MockEnvironment implements Environment, AutoCloseable {
 		ioManager.shutdown();
 
 		checkState(ioManager.isProperlyShutDown(), "IO Manager has not properly shut down.");
+	}
+
+	public void setExpectedExternalFailureCause(Class<Throwable> expectedThrowableClass) {
+		this.expectedExternalFailureCause = Optional.of(expectedThrowableClass);
 	}
 }
