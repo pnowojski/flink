@@ -23,6 +23,8 @@ import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import java.io.IOException;
 import java.util.ArrayDeque;
 
@@ -32,6 +34,7 @@ import static org.apache.flink.util.Preconditions.checkState;
 /**
  * {@link ResultPartitionWriter} that collects output on the List.
  */
+@ThreadSafe
 public abstract class AbstractCollectingResultPartitionWriter implements ResultPartitionWriter {
 	private final BufferProvider bufferProvider;
 	private final ArrayDeque<BufferConsumer> bufferConsumers = new ArrayDeque<>();
@@ -41,12 +44,12 @@ public abstract class AbstractCollectingResultPartitionWriter implements ResultP
 	}
 
 	@Override
-	public BufferProvider getBufferProvider() {
+	public synchronized BufferProvider getBufferProvider() {
 		return bufferProvider;
 	}
 
 	@Override
-	public ResultPartitionID getPartitionId() {
+	public synchronized ResultPartitionID getPartitionId() {
 		return new ResultPartitionID();
 	}
 
@@ -61,7 +64,7 @@ public abstract class AbstractCollectingResultPartitionWriter implements ResultP
 	}
 
 	@Override
-	public void addBufferConsumer(BufferConsumer bufferConsumer, int targetChannel) throws IOException {
+	public synchronized void addBufferConsumer(BufferConsumer bufferConsumer, int targetChannel) throws IOException {
 		checkState(targetChannel < getNumberOfSubpartitions());
 		bufferConsumers.add(bufferConsumer);
 		processBufferConsumers();
@@ -85,7 +88,7 @@ public abstract class AbstractCollectingResultPartitionWriter implements ResultP
 	}
 
 	@Override
-	public void flush() {
+	public synchronized void flush() {
 		try {
 			processBufferConsumers();
 		} catch (IOException e) {
