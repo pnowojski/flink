@@ -31,9 +31,15 @@ import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.memory.MemoryManager;
 import org.apache.flink.runtime.operators.testutils.MockInputSplitProvider;
 import org.apache.flink.streaming.api.TimeCharacteristic;
+import org.apache.flink.streaming.api.collector.selector.OutputSelector;
 import org.apache.flink.streaming.api.graph.StreamConfig;
+import org.apache.flink.streaming.api.graph.StreamEdge;
+import org.apache.flink.streaming.api.graph.StreamNode;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
+import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.operators.StreamOperator;
+import org.apache.flink.streaming.api.operators.TwoInputStreamOperator;
+import org.apache.flink.streaming.runtime.partitioner.BroadcastPartitioner;
 import org.apache.flink.streaming.runtime.streamrecord.StreamElement;
 import org.apache.flink.streaming.runtime.streamrecord.StreamElementSerializer;
 import org.apache.flink.util.Preconditions;
@@ -43,6 +49,9 @@ import org.junit.Assert;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.BiFunction;
 
@@ -139,11 +148,28 @@ public class StreamTaskTestHarness<OUT> {
 	 */
 	public void setupOutputForSingletonOperatorChain() {
 		Preconditions.checkState(!setupCalled, "This harness was already setup.");
-
+		setupCalled = true;
+		streamConfig.setChainStart();
+		streamConfig.setBufferTimeout(0);
 		streamConfig.setTimeCharacteristic(TimeCharacteristic.EventTime);
+		streamConfig.setOutputSelectors(Collections.<OutputSelector<?>>emptyList());
+		streamConfig.setNumberOfOutputs(1);
+		streamConfig.setTypeSerializerOut(outputSerializer);
 		streamConfig.setVertexID(0);
+		streamConfig.setOperatorID(new OperatorID(4711L, 123L));
 
-		setupOperatorChain(new OperatorID(4711L, 123L), new TestOperator<OUT>(), outputSerializer).finish();
+		StreamOperator<OUT> dummyOperator = new AbstractStreamOperator<OUT>() {
+			private static final long serialVersionUID = 1L;
+		};
+
+		List<StreamEdge> outEdgesInOrder = new LinkedList<StreamEdge>();
+		StreamNode sourceVertexDummy = new StreamNode(null, 0, "group", dummyOperator, "source dummy", new LinkedList<OutputSelector<?>>(), SourceStreamTask.class);
+		StreamNode targetVertexDummy = new StreamNode(null, 1, "group", dummyOperator, "target dummy", new LinkedList<OutputSelector<?>>(), SourceStreamTask.class);
+
+		outEdgesInOrder.add(new StreamEdge(sourceVertexDummy, targetVertexDummy, 0, new LinkedList<String>(), new BroadcastPartitioner<Object>(), null /* output tag */));
+
+		streamConfig.setOutEdgesInOrder(outEdgesInOrder);
+		streamConfig.setNonChainedOutputs(outEdgesInOrder);
 	}
 
 	public StreamMockEnvironment createEnvironment() {
@@ -383,10 +409,16 @@ public class StreamTaskTestHarness<OUT> {
 		}
 	}
 
-	public StreamConfigChainer setupOperatorChain(OperatorID headOperatorId, StreamOperator<?> headOperator, TypeSerializer<?> headOutputSerializer) {
+	public StreamConfigChainer setupOperatorChain(OperatorID headOperatorId, OneInputStreamOperator<?, ?> headOperator) {
 		Preconditions.checkState(!setupCalled, "This harness was already setup.");
 		setupCalled = true;
-		return new StreamConfigChainer(headOperatorId, headOperator, getStreamConfig(), headOutputSerializer);
+		return new StreamConfigChainer(headOperatorId, headOperator, getStreamConfig());
+	}
+
+	public StreamConfigChainer setupOperatorChain(OperatorID headOperatorId, TwoInputStreamOperator<?, ?, ?> headOperator) {
+		Preconditions.checkState(!setupCalled, "This harness was already setup.");
+		setupCalled = true;
+		return new StreamConfigChainer(headOperatorId, headOperator, getStreamConfig());
 	}
 
 	// ------------------------------------------------------------------------
@@ -417,10 +449,6 @@ public class StreamTaskTestHarness<OUT> {
 		public Throwable getError() {
 			return error;
 		}
-	}
-
-	private static class TestOperator<OUT> extends AbstractStreamOperator<OUT> {
-		private static final long serialVersionUID = 1L;
 	}
 }
 

@@ -214,7 +214,7 @@ public class RestoreStreamTaskTest extends TestLogger {
 				BasicTypeInfo.STRING_TYPE_INFO,
 				BasicTypeInfo.STRING_TYPE_INFO);
 
-		testHarness.setupOperatorChain(headId, headOperator, StringSerializer.INSTANCE)
+		testHarness.setupOperatorChain(headId, headOperator)
 			.chain(tailId, tailOperator, StringSerializer.INSTANCE)
 			.finish();
 
