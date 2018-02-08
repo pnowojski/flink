@@ -53,6 +53,43 @@ import static org.junit.Assert.assertTrue;
  */
 public class PartitionRequestQueueTest {
 
+	/**
+	 * In case of enqueuing an empty reader and a reader that actually has some buffers when channel is not writable,
+	 * on channelWritability change event should result in reading all of the messages.
+	 */
+	@Test
+	public void testNotifyReaderNonEmptyOnEmptyReaders() throws Exception {
+		final int buffersToWrite = 5;
+		PartitionRequestQueue queue = new PartitionRequestQueue();
+		EmbeddedChannel channel = new EmbeddedChannel(queue);
+
+		CreditBasedSequenceNumberingViewReader reader1 = new CreditBasedSequenceNumberingViewReader(new InputChannelID(0, 0), 10, queue);
+		CreditBasedSequenceNumberingViewReader reader2 = new CreditBasedSequenceNumberingViewReader(new InputChannelID(1, 1), 10, queue);
+
+		reader1.requestSubpartitionView((partitionId, index, availabilityListener) -> new NotReleasedResultSubpartitionView(), new ResultPartitionID(), 0);
+		reader1.notifyDataAvailable();
+		assertTrue(reader1.isAvailable());
+		assertFalse(reader1.isRegisteredAsAvailable());
+
+		channel.unsafe().outboundBuffer().setUserDefinedWritability(1, false);
+		assertFalse(channel.isWritable());
+
+		reader1.notifyDataAvailable();
+		channel.runPendingTasks();
+
+		reader2.notifyDataAvailable();
+		reader2.requestSubpartitionView((partitionId, index, availabilityListener) -> new DefaultBufferResultSubpartitionView(buffersToWrite), new ResultPartitionID(), 0);
+		assertTrue(reader2.isAvailable());
+		assertFalse(reader2.isRegisteredAsAvailable());
+
+		reader2.notifyDataAvailable();
+
+		// changing a channel writability should result in draining both reader1 and reader2
+		channel.unsafe().outboundBuffer().setUserDefinedWritability(1, true);
+		channel.runPendingTasks();
+		assertEquals(buffersToWrite, channel.outboundMessages().size());
+	}
+
 	@Test
 	public void testProducerFailedException() throws Exception {
 		PartitionRequestQueue queue = new PartitionRequestQueue();
@@ -157,6 +194,13 @@ public class PartitionRequestQueueTest {
 				nextBuffer.isMoreAvailable(),
 				nextBuffer.buffersInBacklog(),
 				nextBuffer.nextBufferIsEvent());
+		}
+	}
+
+	private static class NotReleasedResultSubpartitionView extends NoOpResultSubpartitionView {
+		@Override
+		public boolean isReleased() {
+			return false;
 		}
 	}
 
