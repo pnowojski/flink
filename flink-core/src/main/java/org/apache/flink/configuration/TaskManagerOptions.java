@@ -193,7 +193,7 @@ public class TaskManagerOptions {
 	@Deprecated
 	public static final ConfigOption<Boolean> NETWORK_CREDIT_BASED_FLOW_CONTROL_ENABLED =
 			key("taskmanager.network.credit-based-flow-control.enabled")
-			.defaultValue(true);
+			.defaultValue(false);
 
 	// ------------------------------------------------------------------------
 	//  Task Options
