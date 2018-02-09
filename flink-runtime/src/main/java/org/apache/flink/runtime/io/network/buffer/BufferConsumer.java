@@ -65,7 +65,7 @@ public class BufferConsumer implements Closeable {
 			() -> -memorySegment.size(),
 			0);
 		checkState(memorySegment.size() > 0);
-		checkState(isFinished(), "BufferConsumer with static size must be finished after construction!");
+//		checkState(isFinished(), "BufferConsumer with static size must be finished after construction!");
 	}
 
 	private BufferConsumer(Buffer buffer, BufferBuilder.PositionMarker currentWriterPosition, int currentReaderPosition) {
@@ -135,7 +135,7 @@ public class BufferConsumer implements Closeable {
 
 		public CachedPositionMarker(PositionMarker positionMarker) {
 			this.positionMarker = checkNotNull(positionMarker);
-			update();
+//			update();
 		}
 
 		public boolean isFinished() {

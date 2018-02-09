@@ -85,6 +85,8 @@ public interface RecordSerializer<T extends IOReadableWritable> {
 	 */
 	SerializationResult setNextBufferBuilder(BufferBuilder bufferBuilder) throws IOException;
 
+	BufferBuilder getCurrentBufferBuilder();
+
 	/**
 	 * Clear and release internal state.
 	 */

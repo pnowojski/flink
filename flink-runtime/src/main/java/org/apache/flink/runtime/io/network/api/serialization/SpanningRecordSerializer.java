@@ -82,24 +82,38 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 		}
 
 		serializationBuffer.clear();
-		lengthBuffer.clear();
+//		lengthBuffer.clear();
 
 		// write data and length
 		record.write(serializationBuffer);
 
 		int len = serializationBuffer.length();
-		lengthBuffer.putInt(0, len);
 
 		dataBuffer = serializationBuffer.wrapAsByteBuffer();
 
-		// Copy from intermediate buffers to current target memory segment
-		if (targetBuffer != null) {
-			targetBuffer.append(lengthBuffer);
-			targetBuffer.append(dataBuffer);
-			targetBuffer.commit();
+		if (targetBuffer == null) {
+			lengthBuffer.clear();
+			lengthBuffer.putInt(0, len);
+			return getSerializationResult();
 		}
 
-		return getSerializationResult();
+		if (targetBuffer.getRemainingCapacity() < 4) {
+			lengthBuffer.clear();
+			lengthBuffer.putInt(0, len);
+			targetBuffer.appendAndCommit(lengthBuffer);
+			return getSerializationResult();
+		}
+
+		targetBuffer.append(len);
+		// Copy from intermediate buffers to current target memory segment
+		boolean writtenAll = (targetBuffer.append(dataBuffer) == len);
+		targetBuffer.commit();
+
+		if (!writtenAll) {
+			lengthBuffer.position(lengthBuffer.limit());
+		}
+
+		return getSerializationResult(writtenAll);
 	}
 
 	@Override
@@ -133,6 +147,11 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 		return result;
 	}
 
+	@Override
+	public BufferBuilder getCurrentBufferBuilder() {
+		return targetBuffer;
+	}
+
 	private SerializationResult getSerializationResult() {
 		if (dataBuffer.hasRemaining() || lengthBuffer.hasRemaining()) {
 			return SerializationResult.PARTIAL_RECORD_MEMORY_SEGMENT_FULL;
@@ -140,6 +159,15 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 		return !targetBuffer.isFull()
 				? SerializationResult.FULL_RECORD
 				: SerializationResult.FULL_RECORD_MEMORY_SEGMENT_FULL;
+	}
+
+	private SerializationResult getSerializationResult(boolean writtenAll) {
+		if (!writtenAll) {
+			return SerializationResult.PARTIAL_RECORD_MEMORY_SEGMENT_FULL;
+		}
+		return !targetBuffer.isFull()
+			? SerializationResult.FULL_RECORD
+			: SerializationResult.FULL_RECORD_MEMORY_SEGMENT_FULL;
 	}
 
 	@Override

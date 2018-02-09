@@ -31,7 +31,6 @@ import org.apache.flink.runtime.metrics.groups.TaskIOMetricGroup;
 import org.apache.flink.util.XORShiftRandom;
 
 import java.io.IOException;
-import java.util.Optional;
 import java.util.Random;
 
 import static org.apache.flink.runtime.io.network.api.serialization.RecordSerializer.SerializationResult;
@@ -61,7 +60,7 @@ public class RecordWriter<T extends IOReadableWritable> {
 	/** {@link RecordSerializer} per outgoing channel. */
 	private final RecordSerializer<T>[] serializers;
 
-	private final Optional<BufferBuilder>[] bufferBuilders;
+//	private final Optional<BufferBuilder>[] bufferBuilders;
 
 	private final Random rng = new XORShiftRandom();
 
@@ -84,10 +83,10 @@ public class RecordWriter<T extends IOReadableWritable> {
 		 * serializer.
 		 */
 		this.serializers = new SpanningRecordSerializer[numChannels];
-		this.bufferBuilders = new Optional[numChannels];
+//		this.bufferBuilders = new Optional[numChannels];
 		for (int i = 0; i < numChannels; i++) {
 			serializers[i] = new SpanningRecordSerializer<T>();
-			bufferBuilders[i] = Optional.empty();
+//			bufferBuilders[i] = Optional.empty();
 		}
 	}
 
@@ -131,10 +130,10 @@ public class RecordWriter<T extends IOReadableWritable> {
 				}
 			}
 			BufferBuilder bufferBuilder = requestNewBufferBuilder(targetChannel);
-
+			checkState(serializer.getCurrentBufferBuilder() == null);
 			result = serializer.setNextBufferBuilder(bufferBuilder);
 		}
-		checkState(!serializer.hasSerializedData(), "All data should be written at once");
+//		checkState(!serializer.hasSerializedData(), "All data should be written at once");
 	}
 
 	public BufferConsumer broadcastEvent(AbstractEvent event) throws IOException, InterruptedException {
@@ -158,8 +157,7 @@ public class RecordWriter<T extends IOReadableWritable> {
 	public void clearBuffers() {
 		for (int targetChannel = 0; targetChannel < numChannels; targetChannel++) {
 			RecordSerializer<?> serializer = serializers[targetChannel];
-			closeBufferConsumer(targetChannel);
-			serializer.clear();
+			closeBufferConsumer(targetChannel, serializer);
 		}
 	}
 
@@ -179,11 +177,16 @@ public class RecordWriter<T extends IOReadableWritable> {
 			int targetChannel,
 			RecordSerializer<T> serializer) throws IOException {
 
-		if (!bufferBuilders[targetChannel].isPresent()) {
+//		if (!bufferBuilders[targetChannel].isPresent()) {
+//			return false;
+//		}
+//		BufferBuilder bufferBuilder = bufferBuilders[targetChannel].get();
+//		bufferBuilders[targetChannel] = Optional.empty();
+
+		BufferBuilder bufferBuilder = serializer.getCurrentBufferBuilder();
+		if (bufferBuilder == null) {
 			return false;
 		}
-		BufferBuilder bufferBuilder = bufferBuilders[targetChannel].get();
-		bufferBuilders[targetChannel] = Optional.empty();
 
 		numBytesOut.inc(bufferBuilder.getWrittenBytes());
 		bufferBuilder.finish();
@@ -192,17 +195,23 @@ public class RecordWriter<T extends IOReadableWritable> {
 	}
 
 	private BufferBuilder requestNewBufferBuilder(int targetChannel) throws IOException, InterruptedException {
-		checkState(!bufferBuilders[targetChannel].isPresent());
+//		checkState(!bufferBuilders[targetChannel].isPresent());
 		BufferBuilder bufferBuilder = targetPartition.getBufferProvider().requestBufferBuilderBlocking();
-		bufferBuilders[targetChannel] = Optional.of(bufferBuilder);
+//		bufferBuilders[targetChannel] = Optional.of(bufferBuilder);
 		targetPartition.addBufferConsumer(bufferBuilder.createBufferConsumer(), targetChannel);
 		return bufferBuilder;
 	}
 
-	private void closeBufferConsumer(int targetChannel) {
-		if (bufferBuilders[targetChannel].isPresent()) {
-			bufferBuilders[targetChannel].get().finish();
-			bufferBuilders[targetChannel] = Optional.empty();
+	private void closeBufferConsumer(int targetChannel, RecordSerializer<?> serializer) {
+		BufferBuilder bufferBuilder = serializer.getCurrentBufferBuilder();
+		if (bufferBuilder != null) {
+			bufferBuilder.finish();
 		}
+		serializer.clear();
+
+//		if (bufferBuilders[targetChannel].isPresent()) {
+//			bufferBuilders[targetChannel].get().finish();
+//			bufferBuilders[targetChannel] = Optional.empty();
+//		}
 	}
 }
