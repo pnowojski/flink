@@ -61,16 +61,21 @@ public class StreamNetworkPointToPointBenchmark {
 		recordsReceived.get(RECEIVER_TIMEOUT, TimeUnit.MILLISECONDS);
 	}
 
+	public void setUp(int flushTimeout) throws Exception {
+		setUp(flushTimeout, false);
+	}
+
 	/**
 	 * Initializes the throughput benchmark with the given parameters.
 	 *
 	 * @param flushTimeout
 	 * 		output flushing interval of the
 	 * 		{@link org.apache.flink.streaming.runtime.io.StreamRecordWriter}'s output flusher thread
+	 * @param localMode controls whether to use local or remote mode (input channels)
 	 */
-	public void setUp(long flushTimeout) throws Exception {
+	public void setUp(long flushTimeout, boolean localMode) throws Exception {
 		environment = new StreamNetworkBenchmarkEnvironment<>();
-		environment.setUp(1, 1, false);
+		environment.setUp(1, 1, localMode);
 
 		receiver = environment.createReceiver();
 		recordWriter = environment.createRecordWriter(0, flushTimeout);

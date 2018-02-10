@@ -25,11 +25,29 @@ import org.junit.Test;
  */
 public class StreamNetworkPointToPointBenchmarkTest {
 	@Test
-	public void test() throws Exception {
+	public void testRemote() throws Exception {
 		StreamNetworkPointToPointBenchmark benchmark = new StreamNetworkPointToPointBenchmark();
-		benchmark.setUp(10);
+		benchmark.setUp(10, false);
 		try {
-			benchmark.executeBenchmark(100, false);
+			benchmark.executeBenchmark(1_000, false);
+			benchmark.executeBenchmark(1_000, false);
+			benchmark.executeBenchmark(1_000, false);
+			benchmark.executeBenchmark(1_000, false);
+		}
+		finally {
+			benchmark.tearDown();
+		}
+	}
+
+	@Test
+	public void testLocal() throws Exception {
+		StreamNetworkPointToPointBenchmark benchmark = new StreamNetworkPointToPointBenchmark();
+		benchmark.setUp(10, true);
+		try {
+			benchmark.executeBenchmark(1_000, false);
+			benchmark.executeBenchmark(1_000, false);
+			benchmark.executeBenchmark(1_000, false);
+			benchmark.executeBenchmark(1_000, false);
 		}
 		finally {
 			benchmark.tearDown();

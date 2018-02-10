@@ -97,6 +97,11 @@ class SequenceNumberingViewReader implements BufferAvailabilityListener, Network
 	}
 
 	@Override
+	public boolean isBlocked() {
+		return false;
+	}
+
+	@Override
 	public InputChannelID getReceiverId() {
 		return receiverId;
 	}

@@ -43,6 +43,7 @@ import java.util.ArrayDeque;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.runtime.io.network.netty.NettyMessage.BufferResponse;
 
@@ -51,6 +52,8 @@ import static org.apache.flink.runtime.io.network.netty.NettyMessage.BufferRespo
  * events before writing and flushing {@link Buffer} instances.
  */
 class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
+
+	private static final Object FLUSH_ALL = new Object();
 
 	private final Logger LOG = LoggerFactory.getLogger(PartitionRequestQueue.class);
 
@@ -117,6 +120,23 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		}
 	}
 
+	private void enqueueAllEmptyReaders() throws Exception {
+		boolean wasEmpty = availableReaders.isEmpty();
+
+		for (NetworkSequenceViewReader reader : allReaders.values()) {
+			if (!reader.isRegisteredAsAvailable() && reader.isAvailable()) {
+				registerAvailableReader(reader, false);
+			}
+		}
+
+		if (wasEmpty && !availableReaders.isEmpty()) {
+			writeAndFlushNextMessageIfPossible(ctx.channel());
+		}
+	}
+
+	private void enqueueAvailableReaderForFuture(final NetworkSequenceViewReader reader) throws Exception {
+	}
+
 	/**
 	 * Accesses internal state to verify reader registration in the unit tests.
 	 *
@@ -129,8 +149,22 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		return availableReaders;
 	}
 
-	public void notifyReaderCreated(final NetworkSequenceViewReader reader) {
+	public void notifyReaderCreated(final NetworkSequenceViewReader reader) throws Exception {
+		boolean wasEmpty = allReaders.isEmpty();
 		allReaders.put(reader.getReceiverId(), reader);
+
+		if (wasEmpty) {
+			ctx.executor().scheduleWithFixedDelay(
+				new Runnable() {
+					@Override
+					public void run() {
+						ctx.pipeline().fireUserEventTriggered(FLUSH_ALL);
+					}
+				},
+				10,
+				10,
+				TimeUnit.MILLISECONDS);
+		}
 	}
 
 	public void cancel(InputChannelID receiverId) {
@@ -170,7 +204,9 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		// The user event triggered event loop callback is used for thread-safe
 		// hand over of reader queues and cancelled producers.
 
-		if (msg instanceof NetworkSequenceViewReader) {
+		if (FLUSH_ALL.equals(msg)) {
+			enqueueAllEmptyReaders();
+		} else if (msg instanceof NetworkSequenceViewReader) {
 			enqueueAvailableReader((NetworkSequenceViewReader) msg);
 		} else if (msg.getClass() == InputChannelID.class) {
 			// Release partition view that get a cancel request.
@@ -223,6 +259,10 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 				}
 
 				next = reader.getNextBuffer();
+				if (next == null || !next.moreAvailable()) {
+					enqueueAvailableReaderForFuture(reader);
+				}
+
 				if (next == null) {
 					if (!reader.isReleased()) {
 						continue;
@@ -274,6 +314,10 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 	}
 
 	private void registerAvailableReader(NetworkSequenceViewReader reader) {
+		registerAvailableReader(reader, true);
+	}
+
+	private void registerAvailableReader(NetworkSequenceViewReader reader, boolean removeFromEmpty) {
 		availableReaders.add(reader);
 		reader.setRegisteredAsAvailable(true);
 	}
