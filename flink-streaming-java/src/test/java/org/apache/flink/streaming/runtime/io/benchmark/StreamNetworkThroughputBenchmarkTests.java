@@ -25,6 +25,21 @@ import org.junit.Test;
  */
 public class StreamNetworkThroughputBenchmarkTests {
 	@Test
+	public void latency() throws Exception {
+		StreamNetworkPointToPointBenchmark benchmark = new StreamNetworkPointToPointBenchmark();
+		benchmark.setUp(10);
+		try {
+			benchmark.executeBenchmark(1_000, false);
+			benchmark.executeBenchmark(1_000, false);
+			benchmark.executeBenchmark(1_000, false);
+			benchmark.executeBenchmark(1_000, false);
+		}
+		finally {
+			benchmark.tearDown();
+		}
+	}
+
+	@Test
 	public void pointToPointBenchmark() throws Exception {
 		StreamNetworkThroughputBenchmark benchmark = new StreamNetworkThroughputBenchmark();
 		benchmark.setUp(1, 1, 100);
@@ -36,7 +51,7 @@ public class StreamNetworkThroughputBenchmarkTests {
 		}
 	}
 
-	@Test
+//	@Test
 	public void largeLocalMode() throws Exception {
 		StreamNetworkThroughputBenchmark env = new StreamNetworkThroughputBenchmark();
 		env.setUp(4, 10, 100, true);

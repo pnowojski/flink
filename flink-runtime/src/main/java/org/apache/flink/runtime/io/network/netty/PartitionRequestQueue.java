@@ -43,6 +43,7 @@ import java.util.ArrayDeque;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.runtime.io.network.netty.NettyMessage.BufferResponse;
 
@@ -103,7 +104,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 	 * availability, so there is no race condition here.
 	 */
 	private void enqueueAvailableReader(final NetworkSequenceViewReader reader) throws Exception {
-		if (reader.isRegisteredAsAvailable() || !reader.isAvailable()) {
+		if (reader.isRegisteredAsAvailable()) {// || !reader.isAvailable()) {
 			return;
 		}
 		// Queue an available reader for consumption. If the queue is empty,
@@ -115,6 +116,18 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		if (triggerWrite) {
 			writeAndFlushNextMessageIfPossible(ctx.channel());
 		}
+	}
+
+	private void enqueueAvailableReaderForFuture(final NetworkSequenceViewReader reader) throws Exception {
+		ctx.executor().schedule(new Runnable() {
+			@Override
+			public void run() {
+//				System.out.println("Scheduled!");
+				ctx.pipeline().fireUserEventTriggered(reader);
+			}
+		},
+		10,
+			TimeUnit.MILLISECONDS);
 	}
 
 	/**
@@ -129,8 +142,9 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		return availableReaders;
 	}
 
-	public void notifyReaderCreated(final NetworkSequenceViewReader reader) {
+	public void notifyReaderCreated(final NetworkSequenceViewReader reader) throws Exception {
 		allReaders.put(reader.getReceiverId(), reader);
+		enqueueAvailableReaderForFuture(reader);
 	}
 
 	public void cancel(InputChannelID receiverId) {
@@ -223,6 +237,10 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 				}
 
 				next = reader.getNextBuffer();
+				if (next == null || !next.moreAvailable()) {
+					enqueueAvailableReaderForFuture(reader);
+				}
+
 				if (next == null) {
 					if (!reader.isReleased()) {
 						continue;

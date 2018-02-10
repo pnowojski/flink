@@ -22,7 +22,6 @@ import org.apache.flink.runtime.io.network.api.writer.RecordWriter;
 import org.apache.flink.types.LongValue;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Streaming point-to-point latency network benchmarks executed by the external
@@ -58,7 +57,8 @@ public class StreamNetworkPointToPointBenchmark {
 			recordWriter.flush();
 		}
 
-		recordsReceived.get(RECEIVER_TIMEOUT, TimeUnit.MILLISECONDS);
+//		recordsReceived.get(RECEIVER_TIMEOUT, TimeUnit.MILLISECONDS);
+		recordsReceived.get();
 	}
 
 	/**
