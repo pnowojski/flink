@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -63,7 +62,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 	/** The readers which are already enqueued available for transferring data. */
 	private final ArrayDeque<NetworkSequenceViewReader> availableReaders = new ArrayDeque<>();
 
-	private final Set<NetworkSequenceViewReader> emptyReaders = new HashSet<>();
+//	private final Set<NetworkSequenceViewReader> emptyReaders = new HashSet<>();
 
 	/** All the readers created for the consumers' partition requests. */
 	private final ConcurrentMap<InputChannelID, NetworkSequenceViewReader> allReaders = new ConcurrentHashMap<>();
@@ -126,12 +125,12 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 	private void enqueueAllEmptyReaders() throws Exception {
 		boolean wasEmpty = availableReaders.isEmpty();
 
-		for (NetworkSequenceViewReader reader : emptyReaders) {
+		for (NetworkSequenceViewReader reader : allReaders.values()) {
 			if (!reader.isRegisteredAsAvailable()) {// || !reader.isAvailable()) {
 				registerAvailableReader(reader, false);
 			}
 		}
-		emptyReaders.clear();
+//		emptyReaders.clear();
 
 		if (wasEmpty && !availableReaders.isEmpty()) {
 			writeAndFlushNextMessageIfPossible(ctx.channel());
@@ -139,18 +138,6 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 	}
 
 	private void enqueueAvailableReaderForFuture(final NetworkSequenceViewReader reader) throws Exception {
-		boolean wasEmpty = emptyReaders.isEmpty();
-		emptyReaders.add(reader);
-		if (wasEmpty) {
-			ctx.executor().schedule(new Runnable() {
-										@Override
-										public void run() {
-											ctx.pipeline().fireUserEventTriggered(FLUSH_ALL);
-										}
-									},
-				10,
-				TimeUnit.MILLISECONDS);
-		}
 	}
 
 	/**
@@ -166,8 +153,21 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 	}
 
 	public void notifyReaderCreated(final NetworkSequenceViewReader reader) throws Exception {
+		boolean wasEmpty = allReaders.isEmpty();
 		allReaders.put(reader.getReceiverId(), reader);
-		enqueueAvailableReaderForFuture(reader);
+
+		if (wasEmpty) {
+			ctx.executor().scheduleWithFixedDelay(
+				new Runnable() {
+					@Override
+					public void run() {
+						ctx.pipeline().fireUserEventTriggered(FLUSH_ALL);
+					}
+				},
+				10,
+				10,
+				TimeUnit.MILLISECONDS);
+		}
 	}
 
 	public void cancel(InputChannelID receiverId) {
@@ -323,9 +323,6 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 	private void registerAvailableReader(NetworkSequenceViewReader reader, boolean removeFromEmpty) {
 		availableReaders.add(reader);
 		reader.setRegisteredAsAvailable(true);
-		if (removeFromEmpty) {
-			emptyReaders.remove(reader);
-		}
 	}
 
 	private NetworkSequenceViewReader poolAvailableReader() {
