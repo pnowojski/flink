@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -53,12 +54,16 @@ import static org.apache.flink.runtime.io.network.netty.NettyMessage.BufferRespo
  */
 class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 
+	private static final Object FLUSH_ALL = new Object();
+
 	private final Logger LOG = LoggerFactory.getLogger(PartitionRequestQueue.class);
 
 	private final ChannelFutureListener writeListener = new WriteAndFlushNextMessageIfPossibleListener();
 
 	/** The readers which are already enqueued available for transferring data. */
 	private final ArrayDeque<NetworkSequenceViewReader> availableReaders = new ArrayDeque<>();
+
+	private final Set<NetworkSequenceViewReader> emptyReaders = new HashSet<>();
 
 	/** All the readers created for the consumers' partition requests. */
 	private final ConcurrentMap<InputChannelID, NetworkSequenceViewReader> allReaders = new ConcurrentHashMap<>();
@@ -118,16 +123,34 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		}
 	}
 
-	private void enqueueAvailableReaderForFuture(final NetworkSequenceViewReader reader) throws Exception {
-		ctx.executor().schedule(new Runnable() {
-			@Override
-			public void run() {
-//				System.out.println("Scheduled!");
-				ctx.pipeline().fireUserEventTriggered(reader);
+	private void enqueueAllEmptyReaders() throws Exception {
+		boolean wasEmpty = availableReaders.isEmpty();
+
+		for (NetworkSequenceViewReader reader : emptyReaders) {
+			if (!reader.isRegisteredAsAvailable()) {// || !reader.isAvailable()) {
+				registerAvailableReader(reader, false);
 			}
-		},
-		10,
-			TimeUnit.MILLISECONDS);
+		}
+		emptyReaders.clear();
+
+		if (wasEmpty && !availableReaders.isEmpty()) {
+			writeAndFlushNextMessageIfPossible(ctx.channel());
+		}
+	}
+
+	private void enqueueAvailableReaderForFuture(final NetworkSequenceViewReader reader) throws Exception {
+		boolean wasEmpty = emptyReaders.isEmpty();
+		emptyReaders.add(reader);
+		if (wasEmpty) {
+			ctx.executor().schedule(new Runnable() {
+										@Override
+										public void run() {
+											ctx.pipeline().fireUserEventTriggered(FLUSH_ALL);
+										}
+									},
+				10,
+				TimeUnit.MILLISECONDS);
+		}
 	}
 
 	/**
@@ -184,7 +207,9 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		// The user event triggered event loop callback is used for thread-safe
 		// hand over of reader queues and cancelled producers.
 
-		if (msg instanceof NetworkSequenceViewReader) {
+		if (FLUSH_ALL.equals(msg)) {
+			enqueueAllEmptyReaders();
+		} else if (msg instanceof NetworkSequenceViewReader) {
 			enqueueAvailableReader((NetworkSequenceViewReader) msg);
 		} else if (msg.getClass() == InputChannelID.class) {
 			// Release partition view that get a cancel request.
@@ -292,8 +317,15 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 	}
 
 	private void registerAvailableReader(NetworkSequenceViewReader reader) {
+		registerAvailableReader(reader, true);
+	}
+
+	private void registerAvailableReader(NetworkSequenceViewReader reader, boolean removeFromEmpty) {
 		availableReaders.add(reader);
 		reader.setRegisteredAsAvailable(true);
+		if (removeFromEmpty) {
+			emptyReaders.remove(reader);
+		}
 	}
 
 	private NetworkSequenceViewReader poolAvailableReader() {
@@ -368,6 +400,19 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 			} catch (Throwable t) {
 				handleException(future.channel(), t);
 			}
+		}
+	}
+
+	private static class FlushAllEvent implements Runnable {
+		private final ChannelHandlerContext ctx;
+
+		public FlushAllEvent(ChannelHandlerContext ctx) {
+			this.ctx = ctx;
+		}
+
+		@Override
+		public void run() {
+			ctx.pipeline().fireUserEventTriggered(FLUSH_ALL);
 		}
 	}
 }
