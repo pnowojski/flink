@@ -182,7 +182,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 			// Cancel the request for the input channel
 			int size = availableReaders.size();
 			for (int i = 0; i < size; i++) {
-				NetworkSequenceViewReader reader = poolAvailableReader();
+				NetworkSequenceViewReader reader = pollAvailableReader();
 				if (reader.getReceiverId().equals(toCancel)) {
 					reader.releaseAllResources();
 					markAsReleased(reader.getReceiverId());
@@ -214,7 +214,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		BufferAndAvailability next = null;
 		try {
 			while (true) {
-				NetworkSequenceViewReader reader = poolAvailableReader();
+				NetworkSequenceViewReader reader = pollAvailableReader();
 
 				// No queue with available data. We allow this here, because
 				// of the write callbacks that are executed after each write.
@@ -278,7 +278,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		reader.setRegisteredAsAvailable(true);
 	}
 
-	private NetworkSequenceViewReader poolAvailableReader() {
+	private NetworkSequenceViewReader pollAvailableReader() {
 		NetworkSequenceViewReader reader = availableReaders.poll();
 		if (reader != null) {
 			reader.setRegisteredAsAvailable(false);

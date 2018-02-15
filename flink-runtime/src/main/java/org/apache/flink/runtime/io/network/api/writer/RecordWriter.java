@@ -175,9 +175,7 @@ public class RecordWriter<T extends IOReadableWritable> {
 	 *
 	 * @return true if some data were written
 	 */
-	private boolean tryFinishCurrentBufferBuilder(
-			int targetChannel,
-			RecordSerializer<T> serializer) throws IOException {
+	private boolean tryFinishCurrentBufferBuilder(int targetChannel, RecordSerializer<T> serializer) {
 
 		if (!bufferBuilders[targetChannel].isPresent()) {
 			return false;
@@ -185,8 +183,7 @@ public class RecordWriter<T extends IOReadableWritable> {
 		BufferBuilder bufferBuilder = bufferBuilders[targetChannel].get();
 		bufferBuilders[targetChannel] = Optional.empty();
 
-		numBytesOut.inc(bufferBuilder.getWrittenBytes());
-		bufferBuilder.finish();
+		numBytesOut.inc(bufferBuilder.finish());
 		serializer.clear();
 		return true;
 	}

@@ -44,12 +44,12 @@ public abstract class AbstractCollectingResultPartitionWriter implements ResultP
 	}
 
 	@Override
-	public synchronized BufferProvider getBufferProvider() {
+	public BufferProvider getBufferProvider() {
 		return bufferProvider;
 	}
 
 	@Override
-	public synchronized ResultPartitionID getPartitionId() {
+	public ResultPartitionID getPartitionId() {
 		return new ResultPartitionID();
 	}
 
