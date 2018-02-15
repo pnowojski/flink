@@ -50,11 +50,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.Timer;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -146,7 +144,7 @@ public class SingleInputGate implements InputGate {
 	 * Field guaranteeing uniqueness for inputChannelsWithData queue. Both of those fields should be unified
 	 * onto one.
 	 */
-	private final Set<Integer> enqueuedInputChannelsWithData = new HashSet<>();
+	private final BitSet enqueuedInputChannelsWithData = new BitSet();
 
 	private final BitSet channelsWithEndOfPartitionEvents;
 
@@ -529,7 +527,7 @@ public class SingleInputGate implements InputGate {
 				}
 
 				currentChannel = inputChannelsWithData.remove();
-				enqueuedInputChannelsWithData.remove(currentChannel.getChannelIndex());
+				enqueuedInputChannelsWithData.clear(currentChannel.getChannelIndex());
 				moreAvailable = inputChannelsWithData.size() > 0;
 			}
 
@@ -604,13 +602,13 @@ public class SingleInputGate implements InputGate {
 		int availableChannels;
 
 		synchronized (inputChannelsWithData) {
-			if (enqueuedInputChannelsWithData.contains(channel.getChannelIndex())) {
+			if (enqueuedInputChannelsWithData.get(channel.getChannelIndex())) {
 				return;
 			}
 			availableChannels = inputChannelsWithData.size();
 
 			inputChannelsWithData.add(channel);
-			enqueuedInputChannelsWithData.add(channel.getChannelIndex());
+			enqueuedInputChannelsWithData.set(channel.getChannelIndex());
 
 			if (availableChannels == 0) {
 				inputChannelsWithData.notifyAll();
