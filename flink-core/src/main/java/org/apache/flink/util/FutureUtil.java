@@ -60,9 +60,7 @@ public class FutureUtil {
 	public static void waitForAll(long timeoutMillis, Collection<Future<?>> futures) throws Exception {
 		long startMillis = System.currentTimeMillis();
 		Set<Future<?>> futuresSet = new HashSet<>();
-		for (Future<?> future : futures) {
-			futuresSet.add(future);
-		}
+		futuresSet.addAll(futures);
 
 		while (System.currentTimeMillis() < startMillis + timeoutMillis) {
 			if (futuresSet.isEmpty()) {
