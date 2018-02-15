@@ -114,10 +114,10 @@ class PipelinedSubpartition extends ResultSubpartition {
 			}
 
 			// Release all available buffers
-			BufferConsumer bufferConsumer;
-			while ((bufferConsumer = buffers.poll()) != null) {
-				bufferConsumer.close();
+			for (BufferConsumer buffer : buffers) {
+				buffer.close();
 			}
+			buffers.clear();
 
 			view = readView;
 			readView = null;
