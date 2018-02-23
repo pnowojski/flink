@@ -70,8 +70,6 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 
 	private volatile SpilledSubpartitionView spilledView;
 
-	private boolean flushRequested;
-
 	SpillableSubpartitionView(
 		SpillableSubpartition parent,
 		ArrayDeque<BufferConsumer> buffers,
@@ -151,31 +149,17 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 			if (isReleased.get()) {
 				return null;
 			} else if (nextBuffer != null) {
-				if (buffers.isEmpty()) {
-					// turn off flushRequested flag if we drained all finished buffers
-					// and this pollBuffer() call will drain remaining records from last
-					// unfinished buffer
-					flushRequested = false;
-				}
-
 				current = nextBuffer.build();
+				checkState(nextBuffer.isFinished(),
+					"We can only read from SpillableSubpartition after it was finished");
 
-				checkState(nextBuffer.isFinished() || buffers.isEmpty(),
-					"When there are multiple buffers, an unfinished bufferConsumer can not be at the head of the buffers queue.");
-
-				if (nextBuffer.isFinished()) {
-					newBacklog = parent.decreaseBuffersInBacklogUnsafe(nextBuffer.isBuffer());
-					nextBuffer.close();
-					nextBuffer = buffers.poll();
-				}
-
-				isMoreAvailable = isMoreNotSpilledAvailable();
-				if (isMoreAvailable) {
-					listener.notifyDataAvailable();
-				}
+				newBacklog = parent.decreaseBuffersInBacklogUnsafe(nextBuffer.isBuffer());
+				nextBuffer.close();
+				nextBuffer = buffers.poll();
 
 				if (nextBuffer != null) {
 					nextBufferIsEvent = !nextBuffer.isBuffer();
+					isMoreAvailable = true;
 				}
 
 				parent.updateStatistics(current);
@@ -185,8 +169,6 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 					return new BufferAndBacklog(current, isMoreAvailable, newBacklog, nextBufferIsEvent);
 				}
 			}
-
-			flushRequested = false;
 		} // else: spilled
 
 		SpilledSubpartitionView spilled = spilledView;
@@ -203,9 +185,6 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 
 	@Override
 	public void notifyDataAvailable() {
-		synchronized (buffers) {
-			flushRequested = true;
-		}
 	}
 
 	@Override
@@ -264,7 +243,7 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 	public boolean isAvailable() {
 		synchronized (buffers) {
 			if (nextBuffer != null) {
-				return isMoreNotSpilledAvailable();
+				return true;
 			}
 			else if (spilledView == null) {
 				return false;
@@ -274,13 +253,6 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 		checkState(spilledView != null, "No in-memory buffers available, but also nothing spilled.");
 
 		return spilledView.isAvailable();
-	}
-
-	private boolean isMoreNotSpilledAvailable() {
-		if (nextBuffer == null) {
-			return false;
-		}
-		return flushRequested || nextBuffer.isFinished();
 	}
 
 	@Override

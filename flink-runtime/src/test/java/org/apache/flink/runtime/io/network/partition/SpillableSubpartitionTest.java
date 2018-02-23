@@ -319,7 +319,7 @@ public class SpillableSubpartitionTest extends SubpartitionTestBase {
 		assertEquals(2, partition.getBuffersInBacklog());
 		assertEquals(partition.getBuffersInBacklog(), read.buffersInBacklog());
 		read.buffer().recycleBuffer();
-		assertEquals(2, listener.getNumNotifications());
+		assertEquals(1, listener.getNumNotifications());
 		assertFalse(bufferConsumer.isRecycled());
 		assertFalse(read.nextBufferIsEvent());
 
@@ -332,8 +332,8 @@ public class SpillableSubpartitionTest extends SubpartitionTestBase {
 		//TODO: re-enable this?
 //		assertEquals(BUFFER_DATA_SIZE * 4 + 4, partition.getTotalNumberOfBytes());
 
-		listener.awaitNotifications(3, 30_000);
-		assertEquals(3, listener.getNumNotifications());
+		listener.awaitNotifications(2, 30_000);
+		assertEquals(2, listener.getNumNotifications());
 
 		assertFalse(reader.nextBufferIsEvent()); // second buffer (retained in SpillableSubpartition#nextBuffer)
 		read = reader.getNextBuffer();
