@@ -67,6 +67,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 	@Override
 	public void flush() {
 		synchronized (buffers) {
+			flushRequested = !buffers.isEmpty();
 			notifyDataAvailable();
 		}
 	}
@@ -93,7 +94,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 
 			if (finish) {
 				isFinished = true;
-				notifyDataAvailable();
+				flush();
 			}
 			else {
 				maybeNotifyDataAvailable();
@@ -137,6 +138,10 @@ class PipelinedSubpartition extends ResultSubpartition {
 	BufferAndBacklog pollBuffer() {
 		synchronized (buffers) {
 			Buffer buffer = null;
+
+			if (buffers.isEmpty()) {
+				flushRequested = false;
+			}
 
 			while (!buffers.isEmpty()) {
 				BufferConsumer bufferConsumer = buffers.peek();
@@ -276,7 +281,6 @@ class PipelinedSubpartition extends ResultSubpartition {
 	}
 
 	private void notifyDataAvailable() {
-		flushRequested = !buffers.isEmpty();
 		if (readView != null) {
 			readView.notifyDataAvailable();
 		}
