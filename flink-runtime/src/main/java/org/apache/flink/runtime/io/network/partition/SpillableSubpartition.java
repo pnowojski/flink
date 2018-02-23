@@ -208,7 +208,7 @@ class SpillableSubpartition extends ResultSubpartition {
 					parent.getBufferProvider().getMemorySegmentSize(),
 					availabilityListener);
 			}
-
+			readView.notifyDataAvailable();
 			return readView;
 		}
 	}

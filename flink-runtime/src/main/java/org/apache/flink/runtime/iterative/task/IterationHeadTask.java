@@ -447,6 +447,8 @@ public class IterationHeadTask<X, Y, S extends Function, OT> extends AbstractIte
 
 		for (RecordWriter<?> eventualOutput : this.eventualOutputs) {
 			eventualOutput.broadcastEvent(EndOfSuperstepEvent.INSTANCE);
+			eventualOutput.clearBuffers();
+			eventualOutput.flushAll();
 		}
 	}
 
