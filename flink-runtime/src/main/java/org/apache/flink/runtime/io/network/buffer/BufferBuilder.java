@@ -87,11 +87,6 @@ public class BufferBuilder {
 		return toCopy;
 	}
 
-	public void append(int value) {
-		memorySegment.putIntBigEndian(positionMarker.getCached(), value);
-		positionMarker.move(4);
-	}
-
 	/**
 	 * Make the change visible to the readers. This is costly operation (volatile access) thus in case of bulk writes
 	 * it's better to commit them all together instead one by one.
@@ -128,10 +123,6 @@ public class BufferBuilder {
 
 	public int getMaxCapacity() {
 		return memorySegment.size();
-	}
-
-	public int getRemainingCapacity() {
-		return memorySegment.size() - positionMarker.getCached();
 	}
 
 	public int getWrittenBytes() {
