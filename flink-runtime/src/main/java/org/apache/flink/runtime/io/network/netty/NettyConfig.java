@@ -83,6 +83,11 @@ public class NettyConfig {
 			.withDeprecatedKeys("taskmanager.net.transport")
 			.withDescription("The Netty transport type, either \"nio\" or \"epoll\"");
 
+	public static final ConfigOption<Integer> FLUSH_INTERVAL = ConfigOptions
+			.key("taskmanager.network.netty.flush-interval")
+			.defaultValue(100)
+			.withDescription("Flush interval for polling buffers from subpartitions.");
+
 	// ------------------------------------------------------------------------
 
 	enum TransportType {
@@ -187,6 +192,10 @@ public class NettyConfig {
 			default:
 				return TransportType.AUTO;
 		}
+	}
+
+	public int getFlushInterval() {
+		return config.getInteger(FLUSH_INTERVAL.key(), FLUSH_INTERVAL.defaultValue());
 	}
 
 	public SSLContext createClientSSLContext() throws Exception {

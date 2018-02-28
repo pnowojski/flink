@@ -83,7 +83,7 @@ public class ClientTransportErrorHandlingTest {
 				true) {
 
 			@Override
-			public ChannelHandler[] getServerChannelHandlers() {
+			public ChannelHandler[] getServerChannelHandlers(int flushInterval) {
 				return new ChannelHandler[0];
 			}
 		};
@@ -219,7 +219,7 @@ public class ClientTransportErrorHandlingTest {
 				true) {
 
 			@Override
-			public ChannelHandler[] getServerChannelHandlers() {
+			public ChannelHandler[] getServerChannelHandlers(int flushInterval) {
 				return new ChannelHandler[] {
 						// Close on read
 						new ChannelInboundHandlerAdapter() {

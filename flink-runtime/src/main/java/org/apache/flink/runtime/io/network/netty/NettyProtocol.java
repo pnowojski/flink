@@ -85,8 +85,8 @@ public class NettyProtocol {
 	 *
 	 * @return channel handlers
 	 */
-	public ChannelHandler[] getServerChannelHandlers() {
-		PartitionRequestQueue queueOfPartitionQueues = new PartitionRequestQueue();
+	public ChannelHandler[] getServerChannelHandlers(int flushInterval) {
+		PartitionRequestQueue queueOfPartitionQueues = new PartitionRequestQueue(flushInterval);
 		PartitionRequestServerHandler serverHandler = new PartitionRequestServerHandler(
 			partitionProvider, taskEventDispatcher, queueOfPartitionQueues, creditBasedEnabled);
 

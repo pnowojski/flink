@@ -93,7 +93,7 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 
 	protected ResultPartitionID[] partitionIds;
 
-	public void setUp(int writers, int channels, boolean localMode) throws Exception {
+	public void setUp(int writers, int channels, boolean localMode, int flushInterval) throws Exception {
 		this.localMode = localMode;
 		this.channels = channels;
 		this.partitionIds = new ResultPartitionID[writers];
@@ -101,13 +101,13 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 		ioManager = new IOManagerAsync();
 
 		int bufferPoolSize = Math.max(2048, writers * channels * 4);
-		senderEnv = createNettyNetworkEnvironment(bufferPoolSize);
+		senderEnv = createNettyNetworkEnvironment(bufferPoolSize, flushInterval);
 		senderEnv.start();
 		if (localMode) {
 			receiverEnv = senderEnv;
 		}
 		else {
-			receiverEnv = createNettyNetworkEnvironment(bufferPoolSize);
+			receiverEnv = createNettyNetworkEnvironment(bufferPoolSize, flushInterval);
 			receiverEnv.start();
 		}
 
@@ -152,12 +152,15 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 	}
 
 	private NetworkEnvironment createNettyNetworkEnvironment(
-			@SuppressWarnings("SameParameterValue") int bufferPoolSize) throws Exception {
+			@SuppressWarnings("SameParameterValue") int bufferPoolSize,
+			int flushInterval) throws Exception {
 
 		final NetworkBufferPool bufferPool = new NetworkBufferPool(bufferPoolSize, BUFFER_SIZE);
 
+		Configuration configuration = new Configuration();
+		configuration.setInteger(NettyConfig.FLUSH_INTERVAL.key(), flushInterval);
 		final NettyConnectionManager nettyConnectionManager = new NettyConnectionManager(
-			new NettyConfig(LOCAL_ADDRESS, 0, BUFFER_SIZE, NUM_SLOTS_AND_THREADS, new Configuration()));
+			new NettyConfig(LOCAL_ADDRESS, 0, BUFFER_SIZE, NUM_SLOTS_AND_THREADS, configuration));
 
 		return new NetworkEnvironment(
 			bufferPool,

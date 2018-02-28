@@ -70,7 +70,7 @@ public class StreamNetworkThroughputBenchmark {
 	 */
 	public void setUp(int recordWriters, int channels, int flushTimeout, boolean localMode) throws Exception {
 		environment = new StreamNetworkBenchmarkEnvironment<>();
-		environment.setUp(recordWriters, channels, localMode);
+		environment.setUp(recordWriters, channels, localMode, flushTimeout);
 		receiver = environment.createReceiver();
 		writerThreads = new LongRecordWriterThread[recordWriters];
 		for (int writer = 0; writer < recordWriters; writer++) {

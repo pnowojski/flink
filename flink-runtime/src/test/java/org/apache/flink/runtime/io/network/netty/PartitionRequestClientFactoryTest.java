@@ -60,7 +60,7 @@ public class PartitionRequestClientFactoryTest {
 				new NettyProtocol(null, null, true) {
 
 					@Override
-					public ChannelHandler[] getServerChannelHandlers() {
+					public ChannelHandler[] getServerChannelHandlers(int flushInterval) {
 						return new ChannelHandler[0];
 					}
 

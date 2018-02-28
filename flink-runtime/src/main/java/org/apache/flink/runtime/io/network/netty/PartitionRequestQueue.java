@@ -67,9 +67,19 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 
 	private final Set<InputChannelID> released = Sets.newHashSet();
 
+	private final int bufferTimeout;
+
 	private boolean fatalError;
 
 	private ChannelHandlerContext ctx;
+
+	public PartitionRequestQueue() {
+		this(NettyConfig.FLUSH_INTERVAL.defaultValue());
+	}
+
+	public PartitionRequestQueue(int bufferTimeout) {
+		this.bufferTimeout = bufferTimeout;
+	}
 
 	@Override
 	public void channelRegistered(final ChannelHandlerContext ctx) throws Exception {
@@ -153,7 +163,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		boolean wasEmpty = allReaders.isEmpty();
 		allReaders.put(reader.getReceiverId(), reader);
 
-		if (wasEmpty) {
+		if (wasEmpty && bufferTimeout > 0) {
 			ctx.executor().scheduleWithFixedDelay(
 				new Runnable() {
 					@Override
@@ -161,8 +171,8 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 						ctx.pipeline().fireUserEventTriggered(FLUSH_ALL);
 					}
 				},
-				10,
-				10,
+				bufferTimeout,
+				bufferTimeout,
 				TimeUnit.MILLISECONDS);
 		}
 	}

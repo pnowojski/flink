@@ -73,9 +73,9 @@ public class StreamNetworkPointToPointBenchmark {
 	 * 		{@link org.apache.flink.streaming.runtime.io.StreamRecordWriter}'s output flusher thread
 	 * @param localMode controls whether to use local or remote mode (input channels)
 	 */
-	public void setUp(long flushTimeout, boolean localMode) throws Exception {
+	public void setUp(int flushTimeout, boolean localMode) throws Exception {
 		environment = new StreamNetworkBenchmarkEnvironment<>();
-		environment.setUp(1, 1, localMode);
+		environment.setUp(1, 1, localMode, flushTimeout);
 
 		receiver = environment.createReceiver();
 		recordWriter = environment.createRecordWriter(0, flushTimeout);

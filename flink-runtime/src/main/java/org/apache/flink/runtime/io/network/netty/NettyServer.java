@@ -158,7 +158,7 @@ class NettyServer {
 					channel.pipeline().addLast("ssl", new SslHandler(sslEngine));
 				}
 
-				channel.pipeline().addLast(protocol.getServerChannelHandlers());
+				channel.pipeline().addLast(protocol.getServerChannelHandlers(config.getFlushInterval()));
 			}
 		});
 
