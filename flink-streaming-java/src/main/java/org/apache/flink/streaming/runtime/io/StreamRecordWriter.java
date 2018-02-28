@@ -70,7 +70,7 @@ public class StreamRecordWriter<T extends IOReadableWritable> extends RecordWrit
 				DEFAULT_OUTPUT_FLUSH_THREAD_NAME : "Output Timeout Flusher - " + taskName;
 
 			outputFlusher = new OutputFlusher(threadName, timeout);
-//			outputFlusher.start();
+			outputFlusher.start();
 		}
 	}
 
@@ -167,7 +167,7 @@ public class StreamRecordWriter<T extends IOReadableWritable> extends RecordWrit
 
 					// any errors here should let the thread come to a halt and be
 					// recognized by the writer
-					flushAll();
+					flushAllLocal();
 				}
 			}
 			catch (Throwable t) {

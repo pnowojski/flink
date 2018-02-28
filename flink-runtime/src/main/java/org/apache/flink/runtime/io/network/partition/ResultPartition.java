@@ -265,6 +265,13 @@ public class ResultPartition implements ResultPartitionWriter, BufferPoolOwner {
 	}
 
 	@Override
+	public void flushAllLocal() {
+		for (ResultSubpartition subpartition : subpartitions) {
+			subpartition.flush(true);
+		}
+	}
+
+	@Override
 	public void flush(int subpartitionIndex) {
 		subpartitions[subpartitionIndex].flush();
 	}

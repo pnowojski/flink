@@ -197,7 +197,7 @@ public class CancelPartitionRequestTest {
 		}
 
 		@Override
-		public void notifyDataAvailable() {
+		public void notifyDataAvailable(boolean onlyIfLocal) {
 		}
 
 		@Override

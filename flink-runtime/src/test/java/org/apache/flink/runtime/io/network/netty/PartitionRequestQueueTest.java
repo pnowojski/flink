@@ -377,7 +377,7 @@ public class PartitionRequestQueueTest {
 		}
 
 		@Override
-		public void notifyDataAvailable() {
+		public void notifyDataAvailable(boolean onlyIfLocal) {
 		}
 
 		@Override

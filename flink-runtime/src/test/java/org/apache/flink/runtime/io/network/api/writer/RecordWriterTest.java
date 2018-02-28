@@ -425,6 +425,10 @@ public class RecordWriterTest {
 		}
 
 		@Override
+		public void flushAllLocal() {
+		}
+
+		@Override
 		public void flush(int subpartitionIndex) {
 		}
 	}
@@ -479,6 +483,10 @@ public class RecordWriterTest {
 
 		@Override
 		public void flushAll() {
+		}
+
+		@Override
+		public void flushAllLocal() {
 		}
 
 		@Override

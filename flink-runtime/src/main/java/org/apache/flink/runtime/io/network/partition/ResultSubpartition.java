@@ -104,7 +104,15 @@ public abstract class ResultSubpartition {
 	 */
 	abstract public boolean add(BufferConsumer bufferConsumer) throws IOException;
 
-	abstract public void flush();
+	public void flush() {
+		flush(false);
+	}
+
+	/**
+	 * @param onlyIfLocal flush if this subpartition is being read from a
+	 * {@link org.apache.flink.runtime.io.network.partition.consumer.LocalInputChannel}
+	 */
+	abstract public void flush(boolean onlyIfLocal);
 
 	abstract public void finish() throws IOException;
 

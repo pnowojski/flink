@@ -187,7 +187,7 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 	}
 
 	@Override
-	public void notifyDataAvailable() {
+	public void notifyDataAvailable(boolean onlyIfLocal) {
 		// We do the availability listener notification one by one
 	}
 

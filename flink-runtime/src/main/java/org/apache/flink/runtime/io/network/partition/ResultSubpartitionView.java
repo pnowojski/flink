@@ -43,7 +43,7 @@ public interface ResultSubpartitionView {
 	@Nullable
 	BufferAndBacklog getNextBuffer() throws IOException, InterruptedException;
 
-	void notifyDataAvailable();
+	void notifyDataAvailable(boolean onlyIfLocal);
 
 	void releaseAllResources() throws IOException;
 

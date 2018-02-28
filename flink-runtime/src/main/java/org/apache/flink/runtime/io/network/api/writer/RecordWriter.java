@@ -172,6 +172,10 @@ public class RecordWriter<T extends IOReadableWritable> {
 		targetPartition.flushAll();
 	}
 
+	public void flushAllLocal() {
+		targetPartition.flushAllLocal();
+	}
+
 	public void clearBuffers() {
 		for (int targetChannel = 0; targetChannel < numChannels; targetChannel++) {
 			RecordSerializer<?> serializer = serializers[targetChannel];

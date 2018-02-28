@@ -52,8 +52,13 @@ class PipelinedSubpartitionView implements ResultSubpartitionView {
 	}
 
 	@Override
-	public void notifyDataAvailable() {
-		availabilityListener.notifyDataAvailable();
+	public void notifyDataAvailable(boolean onlyIfLocal) {
+		if (onlyIfLocal) {
+			availabilityListener.notifyDataAvailableOnlyIfLocal();
+		}
+		else {
+			availabilityListener.notifyDataAvailable();
+		}
 	}
 
 	@Override

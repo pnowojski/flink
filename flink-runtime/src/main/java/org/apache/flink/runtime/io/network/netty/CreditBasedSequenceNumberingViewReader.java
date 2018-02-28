@@ -196,6 +196,11 @@ class CreditBasedSequenceNumberingViewReader implements BufferAvailabilityListen
 	}
 
 	@Override
+	public void notifyDataAvailableOnlyIfLocal() {
+		// non local channels flushing is handled by Netty
+	}
+
+	@Override
 	public void notifyDataAvailable() {
 		requestQueue.notifyReaderNonEmpty(this);
 	}

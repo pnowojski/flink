@@ -97,6 +97,11 @@ public abstract class AbstractCollectingResultPartitionWriter implements ResultP
 	}
 
 	@Override
+	public void flushAllLocal() {
+		flushAll();
+	}
+
+	@Override
 	public void flush(int subpartitionIndex) {
 		flushAll();
 	}

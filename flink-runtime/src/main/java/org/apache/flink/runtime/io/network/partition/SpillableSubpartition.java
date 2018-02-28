@@ -116,10 +116,10 @@ class SpillableSubpartition extends ResultSubpartition {
 	}
 
 	@Override
-	public void flush() {
+	public void flush(boolean onlyIfLocal) {
 		synchronized (buffers) {
 			if (readView != null) {
-				readView.notifyDataAvailable();
+				readView.notifyDataAvailable(onlyIfLocal);
 			}
 		}
 	}

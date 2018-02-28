@@ -67,13 +67,13 @@ class PipelinedSubpartition extends ResultSubpartition {
 	}
 
 	@Override
-	public void flush() {
+	public void flush(boolean onlyIfLocal) {
 		synchronized (buffers) {
 			if (buffers.isEmpty()) {
 				return;
 			}
 			flushRequested = !buffers.isEmpty();
-			notifyDataAvailable();
+			notifyDataAvailable(onlyIfLocal);
 		}
 	}
 
@@ -228,7 +228,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 
 			readView = new PipelinedSubpartitionView(this, availabilityListener);
 			if (!buffers.isEmpty()) {
-				notifyDataAvailable();
+				notifyDataAvailable(false);
 			}
 		}
 
@@ -281,13 +281,13 @@ class PipelinedSubpartition extends ResultSubpartition {
 	private void maybeNotifyDataAvailable() {
 		// Notify only when we added first finished buffer.
 		if (getNumberOfFinishedBuffers() == 1) {
-			notifyDataAvailable();
+			notifyDataAvailable(false);
 		}
 	}
 
-	private void notifyDataAvailable() {
+	private void notifyDataAvailable(boolean onlyIfLocal) {
 		if (readView != null) {
-			readView.notifyDataAvailable();
+			readView.notifyDataAvailable(onlyIfLocal);
 		}
 	}
 
