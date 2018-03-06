@@ -20,13 +20,17 @@ package org.apache.flink.streaming.runtime.io.benchmark;
 
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.runtime.io.network.api.writer.RecordWriter;
+import org.apache.flink.runtime.plugable.SerializationDelegate;
+import org.apache.flink.streaming.runtime.io.RecordWriterOutput;
 import org.apache.flink.streaming.runtime.io.StreamRecordWriter;
+import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.flink.streaming.runtime.streamstatus.StreamStatus;
+import org.apache.flink.streaming.runtime.streamstatus.StreamStatusProvider;
 import org.apache.flink.types.LongValue;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
-import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
@@ -34,7 +38,9 @@ import static org.apache.flink.util.Preconditions.checkState;
  * records.
  */
 public class LongRecordWriterThread extends CheckedThread {
-	private final StreamRecordWriter<LongValue> recordWriter;
+//	private final StreamRecordWriter<SerializationDelegate<StreamRecord<UserPojo>>> recordWriter;
+
+	private final RecordWriterOutput<UserPojo> recordWriter;
 
 	/**
 	 * Future to wait on a definition of the number of records to send.
@@ -43,8 +49,20 @@ public class LongRecordWriterThread extends CheckedThread {
 
 	private volatile boolean running = true;
 
-	public LongRecordWriterThread(StreamRecordWriter<LongValue> recordWriter) {
-		this.recordWriter = checkNotNull(recordWriter);
+	public LongRecordWriterThread(StreamRecordWriter<SerializationDelegate<StreamRecord<UserPojo>>> recordWriter) {
+//		this.recordWriter = checkNotNull(recordWriter);
+
+		this.recordWriter = new RecordWriterOutput<>(
+			recordWriter,
+			UserPojo.getSerializer(),
+			null,
+			new StreamStatusProvider() {
+				@Override
+				public StreamStatus getStreamStatus() {
+					return StreamStatus.ACTIVE;
+				}
+			}
+		);
 	}
 
 	public void shutdown() {
@@ -89,10 +107,10 @@ public class LongRecordWriterThread extends CheckedThread {
 		LongValue value = new LongValue(0);
 
 		for (int i = 1; i < records; i++) {
-			recordWriter.emit(value);
+			recordWriter.collect(new StreamRecord<>(new UserPojo(0)));
 		}
 		value.setValue(records);
-		recordWriter.broadcastEmit(value);
+		recordWriter.broadcastCollect(new StreamRecord<>(new UserPojo(records)));
 		recordWriter.flush();
 
 		finishSendingRecords();

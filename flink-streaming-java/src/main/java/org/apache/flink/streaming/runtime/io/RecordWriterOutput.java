@@ -74,6 +74,15 @@ public class RecordWriterOutput<OUT> implements Output<StreamRecord<OUT>> {
 		this.streamStatusProvider = checkNotNull(streamStatusProvider);
 	}
 
+	public void broadcastCollect(StreamRecord<OUT> record) {
+		if (this.outputTag != null) {
+			// we are only responsible for emitting to the main input
+			return;
+		}
+
+		pushToRecordWriters(record);
+	}
+
 	@Override
 	public void collect(StreamRecord<OUT> record) {
 		if (this.outputTag != null) {
@@ -100,6 +109,17 @@ public class RecordWriterOutput<OUT> implements Output<StreamRecord<OUT>> {
 
 		try {
 			recordWriter.emit(serializationDelegate);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
+	}
+
+	private <X> void pushToRecordWriters(StreamRecord<X> record) {
+		serializationDelegate.setInstance(record);
+
+		try {
+			recordWriter.broadcastEmit(serializationDelegate);
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e.getMessage(), e);
