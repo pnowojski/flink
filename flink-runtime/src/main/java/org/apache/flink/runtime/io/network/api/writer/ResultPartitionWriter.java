@@ -107,4 +107,8 @@ public class ResultPartitionWriter implements EventListener<TaskEvent> {
 	public void onEvent(TaskEvent event) {
 		taskEventHandler.publish(event);
 	}
+
+	public ResultPartition getPartition() {
+		return partition;
+	}
 }

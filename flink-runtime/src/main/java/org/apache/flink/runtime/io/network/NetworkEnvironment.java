@@ -186,65 +186,71 @@ public class NetworkEnvironment {
 			}
 
 			for (int i = 0; i < producedPartitions.length; i++) {
-				final ResultPartition partition = producedPartitions[i];
-				final ResultPartitionWriter writer = writers[i];
-
-				// Buffer pool for the partition
-				BufferPool bufferPool = null;
-
-				try {
-					int maxNumberOfMemorySegments = partition.getPartitionType().isBounded() ?
-						partition.getNumberOfSubpartitions() * networkBuffersPerChannel +
-							extraNetworkBuffersPerGate : Integer.MAX_VALUE;
-					bufferPool = networkBufferPool.createBufferPool(partition.getNumberOfSubpartitions(),
-						maxNumberOfMemorySegments);
-					partition.registerBufferPool(bufferPool);
-
-					resultPartitionManager.registerResultPartition(partition);
-				} catch (Throwable t) {
-					if (bufferPool != null) {
-						bufferPool.lazyDestroy();
-					}
-
-					if (t instanceof IOException) {
-						throw (IOException) t;
-					} else {
-						throw new IOException(t.getMessage(), t);
-					}
-				}
-
-				// Register writer with task event dispatcher
-				taskEventDispatcher.registerWriterForIncomingTaskEvents(writer.getPartitionId(), writer);
+				ResultPartition partition = producedPartitions[i];
+				setupPartition(partition);
 			}
 
 			// Setup the buffer pool for each buffer reader
 			final SingleInputGate[] inputGates = task.getAllInputGates();
 
 			for (SingleInputGate gate : inputGates) {
-				BufferPool bufferPool = null;
-
-				try {
-					if (gate.getConsumedPartitionType().isCreditBased()) {
-						// Create a fixed-size buffer pool for floating buffers and assign exclusive buffers to input channels directly
-						bufferPool = networkBufferPool.createBufferPool(extraNetworkBuffersPerGate, extraNetworkBuffersPerGate);
-						gate.assignExclusiveSegments(networkBufferPool, networkBuffersPerChannel);
-					} else {
-						int maxNumberOfMemorySegments = gate.getConsumedPartitionType().isBounded() ?
-							gate.getNumberOfInputChannels() * networkBuffersPerChannel +
-								extraNetworkBuffersPerGate : Integer.MAX_VALUE;
-						bufferPool = networkBufferPool.createBufferPool(gate.getNumberOfInputChannels(),
-							maxNumberOfMemorySegments);
-					}
-					gate.setBufferPool(bufferPool);
-				} catch (Throwable t) {
-					if (bufferPool != null) {
-						bufferPool.lazyDestroy();
-					}
-
-					ExceptionUtils.rethrowIOException(t);
-				}
+				setupInputGate(gate);
 			}
 		}
+	}
+
+	public void setupInputGate(SingleInputGate gate) throws IOException {
+		BufferPool bufferPool = null;
+
+		try {
+			if (gate.getConsumedPartitionType().isCreditBased()) {
+				// Create a fixed-size buffer pool for floating buffers and assign exclusive buffers to input channels directly
+				bufferPool = networkBufferPool.createBufferPool(extraNetworkBuffersPerGate, extraNetworkBuffersPerGate);
+				gate.assignExclusiveSegments(networkBufferPool, networkBuffersPerChannel);
+			} else {
+				int maxNumberOfMemorySegments = gate.getConsumedPartitionType().isBounded() ?
+					gate.getNumberOfInputChannels() * networkBuffersPerChannel +
+						extraNetworkBuffersPerGate : Integer.MAX_VALUE;
+				bufferPool = networkBufferPool.createBufferPool(gate.getNumberOfInputChannels(),
+					maxNumberOfMemorySegments);
+			}
+			gate.setBufferPool(bufferPool);
+		} catch (Throwable t) {
+			if (bufferPool != null) {
+				bufferPool.lazyDestroy();
+			}
+
+			ExceptionUtils.rethrowIOException(t);
+		}
+	}
+
+	public void setupPartition(ResultPartition partition) throws IOException {
+		// Buffer pool for the partition
+		BufferPool bufferPool = null;
+
+		try {
+			int maxNumberOfMemorySegments = partition.getPartitionType().isBounded() ?
+				partition.getNumberOfSubpartitions() * networkBuffersPerChannel +
+					extraNetworkBuffersPerGate : Integer.MAX_VALUE;
+			bufferPool = networkBufferPool.createBufferPool(partition.getNumberOfSubpartitions(),
+				maxNumberOfMemorySegments);
+			partition.registerBufferPool(bufferPool);
+
+			resultPartitionManager.registerResultPartition(partition);
+		} catch (Throwable t) {
+			if (bufferPool != null) {
+				bufferPool.lazyDestroy();
+			}
+
+			if (t instanceof IOException) {
+				throw (IOException) t;
+			} else {
+				throw new IOException(t.getMessage(), t);
+			}
+		}
+
+		// Register writer with task event dispatcher
+//		taskEventDispatcher.registerWriterForIncomingTaskEvents(writer.getPartitionId(), writer);
 	}
 
 	public void unregisterTask(Task task) {
