@@ -36,7 +36,7 @@ import java.nio.ReadOnlyBufferException;
  * <p><strong>BEWARE:</strong> We do not guarantee to block every operation that is able to write
  * data but all returned data structures should be handled as if it was!.
  */
-public final class ReadOnlySlicedNetworkBuffer extends ReadOnlyByteBuf implements Buffer {
+public final class ReadOnlySlicedNetworkBuffer extends SlicedByteBuf implements Buffer {
 
 	private final int memorySegmentOffset;
 
@@ -52,7 +52,7 @@ public final class ReadOnlySlicedNetworkBuffer extends ReadOnlyByteBuf implement
 	 * @param length the length of the slice
 	 */
 	ReadOnlySlicedNetworkBuffer(NetworkBuffer buffer, int index, int length) {
-		super(new SlicedByteBuf(buffer, index, length));
+		super(buffer, index, length);
 		this.memorySegmentOffset = buffer.getMemorySegmentOffset() + index;
 	}
 
@@ -69,7 +69,7 @@ public final class ReadOnlySlicedNetworkBuffer extends ReadOnlyByteBuf implement
 	 * @param memorySegmentOffset <tt>buffer</tt>'s absolute offset in the backing {@link MemorySegment}
 	 */
 	private ReadOnlySlicedNetworkBuffer(ByteBuf buffer, int index, int length, int memorySegmentOffset) {
-		super(new SlicedByteBuf(buffer, index, length));
+		super(buffer, index, length);
 		this.memorySegmentOffset = memorySegmentOffset + index;
 	}
 
