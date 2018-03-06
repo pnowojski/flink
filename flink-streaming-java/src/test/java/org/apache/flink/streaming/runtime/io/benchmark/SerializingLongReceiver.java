@@ -20,15 +20,26 @@ package org.apache.flink.streaming.runtime.io.benchmark;
 
 import org.apache.flink.runtime.io.network.api.reader.MutableRecordReader;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
+import org.apache.flink.runtime.plugable.DeserializationDelegate;
+import org.apache.flink.runtime.plugable.ReusingDeserializationDelegate;
 import org.apache.flink.runtime.util.EnvironmentInformation;
+import org.apache.flink.streaming.runtime.streamrecord.StreamElement;
+import org.apache.flink.streaming.runtime.streamrecord.StreamElementSerializer;
+import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.types.LongValue;
+
+import static org.apache.flink.util.Preconditions.checkState;
 
 /**
  * {@link ReceiverThread} that deserialize incoming messages.
  */
 public class SerializingLongReceiver extends ReceiverThread {
 
-	private final MutableRecordReader<LongValue> reader;
+	private final MutableRecordReader<DeserializationDelegate<StreamElement>> reader;
+
+	private final StreamElementSerializer<UserPojo> serializer;
+
+	private final ReusingDeserializationDelegate<StreamElement> deserializationDelegate;
 
 	@SuppressWarnings("WeakerAccess")
 	public SerializingLongReceiver(InputGate inputGate, int expectedRepetitionsOfExpectedRecord) {
@@ -38,13 +49,21 @@ public class SerializingLongReceiver extends ReceiverThread {
 			new String[]{
 				EnvironmentInformation.getTemporaryFileDirectory()
 			});
+
+		this.serializer = new StreamElementSerializer<>(UserPojo.getSerializer());
+		this.deserializationDelegate = new ReusingDeserializationDelegate<>(serializer);
+		deserializationDelegate.setInstance(new StreamRecord<UserPojo>(new UserPojo(0)));
 	}
 
 	protected void readRecords(long lastExpectedRecord) throws Exception {
 		LOG.debug("readRecords(lastExpectedRecord = {})", lastExpectedRecord);
 		final LongValue value = new LongValue();
 
-		while (running && reader.next(value)) {
+		while (running && reader.next(deserializationDelegate)) {
+			StreamElement instance = deserializationDelegate.getInstance();
+			checkState(instance.isRecord());
+			StreamRecord<UserPojo> record = instance.asRecord();
+			value.setValue(record.getValue().f0);
 			final long ts = value.getValue();
 			if (ts == lastExpectedRecord) {
 				expectedRecordCounter++;

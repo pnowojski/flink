@@ -18,6 +18,8 @@
 
 package org.apache.flink.streaming.runtime.io.benchmark;
 
+import org.apache.flink.runtime.plugable.SerializationDelegate;
+import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.types.LongValue;
 
 import java.util.concurrent.CompletableFuture;
@@ -28,7 +30,7 @@ import java.util.concurrent.TimeUnit;
  * <a href="https://github.com/dataArtisans/flink-benchmarks">flink-benchmarks</a> project.
  */
 public class StreamNetworkThroughputBenchmark {
-	private StreamNetworkBenchmarkEnvironment<LongValue> environment;
+	private StreamNetworkBenchmarkEnvironment<SerializationDelegate<StreamRecord<UserPojo>>> environment;
 	private ReceiverThread receiver;
 	private LongRecordWriterThread[] writerThreads;
 
