@@ -520,6 +520,7 @@ public abstract class KafkaProducerTestBase extends KafkaTestBase {
 					// shut down a Kafka broker
 					hasBeenCheckpointedBeforeFailure = hasBeenCheckpointed;
 					restartedLeaderBefore = true;
+					LOG.info("shutdownAction.run()");
 					shutdownAction.run();
 				}
 			}
@@ -529,11 +530,13 @@ public abstract class KafkaProducerTestBase extends KafkaTestBase {
 		@Override
 		public void notifyCheckpointComplete(long checkpointId) {
 			hasBeenCheckpointed = true;
+			LOG.info("notifyCheckpointComplete at {}", numElementsTotal);
 		}
 
 		@Override
 		public void snapshotState(FunctionSnapshotContext context) throws Exception {
 			numElementsBeforeSnapshot = numElementsTotal;
+			LOG.info("snapshotState with {}", numElementsBeforeSnapshot);
 		}
 
 		@Override
