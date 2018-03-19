@@ -35,12 +35,11 @@ public class Kafka09ProducerITCase extends KafkaProducerTestBase {
 
 	@Override
 	public void testOneToOneAtLeastOnceRegularSink() throws Exception {
-		// For some reasons this test is sometimes failing in Kafka09 while the same code works in Kafka010. Disabling
-		// this test because everything indicates those failures might be caused by unfixed bugs in Kafka 0.9 branch
+		super.testOneToOneAtLeastOnceRegularSink();
 	}
 
 	@Override
 	public void testOneToOneAtLeastOnceCustomOperator() throws Exception {
-		// Disable this test since FlinkKafka09Producer doesn't support custom operator mode
+		super.testOneToOneAtLeastOnceCustomOperator();
 	}
 }
