@@ -40,7 +40,7 @@ public class RoutedRequest<T> implements ReferenceCounted {
 		this.result = checkNotNull(result);
 		this.request = checkNotNull(request);
 		this.requestAsReferenceCounted = Optional.ofNullable((request instanceof ReferenceCounted) ? (ReferenceCounted) request : null);
-		this.queryStringDecoder = new QueryStringDecoder(request.getUri());
+		this.queryStringDecoder = new QueryStringDecoder(request.uri());
 	}
 
 	public RouteResult<T> getRouteResult() {
@@ -92,6 +92,16 @@ public class RoutedRequest<T> implements ReferenceCounted {
 		if (requestAsReferenceCounted.isPresent()) {
 			requestAsReferenceCounted.get().retain(arg0);
 		}
+		return this;
+	}
+
+	@Override
+	public ReferenceCounted touch() {
+		return this;
+	}
+
+	@Override
+	public ReferenceCounted touch(Object o) {
 		return this;
 	}
 }
