@@ -41,51 +41,101 @@ matrix:
         - TEST="core"
         - PROFILE="-Dhadoop.version=2.8.3"
         - CACHE_NAME=JDK8_H280_CO
-    - jdk: "oraclejdk8"
-      env:
-        - TEST="libraries"
-        - PROFILE="-Dhadoop.version=2.8.3"
-        - CACHE_NAME=JDK8_H280_L
-    - jdk: "oraclejdk8"
-      env:
-        - TEST="connectors"
-        - PROFILE="-Dhadoop.version=2.8.3 -Pinclude-kinesis"
-        - CACHE_NAME=JDK8_H280_CN
-    - jdk: "oraclejdk8"
-      env:
-        - TEST="tests"
-        - PROFILE="-Dhadoop.version=2.8.3"
-        - CACHE_NAME=JDK8_H280_T
-    - jdk: "oraclejdk8"
-      env:
-        - TEST="misc"
-        - PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
-        - CACHE_NAME=JDK8_H280_M
     - jdk: "openjdk8"
       env:
         - TEST="core"
         - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
         - CACHE_NAME=JDK8_H241_CO
+    - jdk: "oraclejdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.8.3"
+        - CACHE_NAME=JDK8_H280_CO
     - jdk: "openjdk8"
       env:
-        - TEST="libraries"
+        - TEST="core"
         - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
-        - CACHE_NAME=JDK8_H241_L
+        - CACHE_NAME=JDK8_H241_CO
+    - jdk: "oraclejdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.8.3"
+        - CACHE_NAME=JDK8_H280_CO
     - jdk: "openjdk8"
       env:
-        - TEST="connectors"
-        - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode -Pinclude-kinesis"
-        - CACHE_NAME=JDK8_H241_CN
-    - jdk: "openjdk8"
-      env:
-        - TEST="tests"
+        - TEST="core"
         - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
-        - CACHE_NAME=JDK8_H241_T
+        - CACHE_NAME=JDK8_H241_CO
+    - jdk: "oraclejdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.8.3"
+        - CACHE_NAME=JDK8_H280_CO
     - jdk: "openjdk8"
       env:
-        - TEST="misc"
+        - TEST="core"
         - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
-        - CACHE_NAME=JDK8_H241_M
+        - CACHE_NAME=JDK8_H241_CO
+    - jdk: "oraclejdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.8.3"
+        - CACHE_NAME=JDK8_H280_CO
+    - jdk: "openjdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
+        - CACHE_NAME=JDK8_H241_CO
+    - jdk: "oraclejdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.8.3"
+        - CACHE_NAME=JDK8_H280_CO
+    - jdk: "openjdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
+        - CACHE_NAME=JDK8_H241_CO
+    - jdk: "oraclejdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.8.3"
+        - CACHE_NAME=JDK8_H280_CO
+    - jdk: "openjdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
+        - CACHE_NAME=JDK8_H241_CO
+    - jdk: "oraclejdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.8.3"
+        - CACHE_NAME=JDK8_H280_CO
+    - jdk: "openjdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
+        - CACHE_NAME=JDK8_H241_CO
+    - jdk: "oraclejdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.8.3"
+        - CACHE_NAME=JDK8_H280_CO
+    - jdk: "openjdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
+        - CACHE_NAME=JDK8_H241_CO
+    - jdk: "oraclejdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.8.3"
+        - CACHE_NAME=JDK8_H280_CO
+    - jdk: "openjdk8"
+      env:
+        - TEST="core"
+        - PROFILE="-Dhadoop.version=2.4.1 -DlegacyCode"
+        - CACHE_NAME=JDK8_H241_CO
 
 git:
   depth: 100
