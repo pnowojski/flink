@@ -338,35 +338,39 @@ public class DispatcherTest extends TestLogger {
 	 */
 	@Test
 	public void testJobRecovery() throws Exception {
-		final DispatcherGateway dispatcherGateway = dispatcher.getSelfGateway(DispatcherGateway.class);
+		for (int i = 0; i < 10000; i++) {
+			final DispatcherGateway dispatcherGateway = dispatcher.getSelfGateway(DispatcherGateway.class);
 
-		// elect the initial dispatcher as the leader
-		dispatcherLeaderElectionService.isLeader(UUID.randomUUID()).get();
+			// elect the initial dispatcher as the leader
+			dispatcherLeaderElectionService.isLeader(UUID.randomUUID()).get();
 
-		// submit the job to the current leader
-		dispatcherGateway.submitJob(jobGraph, TIMEOUT).get();
+			// submit the job to the current leader
+			dispatcherGateway.submitJob(jobGraph, TIMEOUT).get();
 
-		// check that the job has been persisted
-		assertThat(submittedJobGraphStore.getJobIds(), contains(jobGraph.getJobID()));
+			// check that the job has been persisted
+			assertThat(submittedJobGraphStore.getJobIds(), contains(jobGraph.getJobID()));
 
-		jobMasterLeaderElectionService.isLeader(UUID.randomUUID()).get();
+			jobMasterLeaderElectionService.isLeader(UUID.randomUUID()).get();
 
-		assertThat(runningJobsRegistry.getJobSchedulingStatus(jobGraph.getJobID()), is(RunningJobsRegistry.JobSchedulingStatus.RUNNING));
+			assertThat(runningJobsRegistry.getJobSchedulingStatus(jobGraph.getJobID()), is(RunningJobsRegistry.JobSchedulingStatus.RUNNING));
 
-		// revoke the leadership which will stop all currently running jobs
-		dispatcherLeaderElectionService.notLeader();
+			// revoke the leadership which will stop all currently running jobs
+			dispatcherLeaderElectionService.notLeader();
 
-		// re-grant the leadership, this should trigger the job recovery
-		dispatcherLeaderElectionService.isLeader(UUID.randomUUID()).get();
+			// re-grant the leadership, this should trigger the job recovery
+			dispatcherLeaderElectionService.isLeader(UUID.randomUUID()).get();
 
-		// wait until we have recovered the job
-		createdJobManagerRunnerLatch.await();
+			// wait until we have recovered the job
+			createdJobManagerRunnerLatch.await();
 
-		// check whether the job has been recovered
-		final Collection<JobID> jobIds = dispatcherGateway.listJobs(TIMEOUT).get();
+			// check whether the job has been recovered
+			final Collection<JobID> jobIds = dispatcherGateway.listJobs(TIMEOUT).get();
 
-		assertThat(jobIds, hasSize(1));
-		assertThat(jobIds, contains(jobGraph.getJobID()));
+			assertThat(jobIds, hasSize(1));
+			assertThat(jobIds, contains(jobGraph.getJobID()));
+			tearDown();
+			setUp();
+		}
 	}
 
 	/**
