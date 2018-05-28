@@ -249,7 +249,6 @@ public class RestClient {
 
 		@Override
 		protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
-			// TODO: should this check for status OK (200) and treat all other as errors?
 			if (msg instanceof HttpResponse && ((HttpResponse) msg).status().equals(REQUEST_ENTITY_TOO_LARGE)) {
 				jsonFuture.completeExceptionally(
 					new RestClientException(
