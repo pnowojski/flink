@@ -20,6 +20,7 @@ package org.apache.flink.streaming.api.operators;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.flink.streaming.runtime.streamrecord.StreamRecordBatch;
 
 /**
  * A {@link StreamOperator} for executing {@link FlatMapFunction FlatMapFunctions}.
@@ -48,5 +49,10 @@ public class StreamFlatMap<IN, OUT>
 	public void processElement(StreamRecord<IN> element) throws Exception {
 		collector.setTimestamp(element);
 		userFunction.flatMap(element.getValue(), collector);
+	}
+
+	@Override
+	public void processBatch(StreamRecordBatch<IN> batch) throws Exception {
+		processBatch2(batch);
 	}
 }
