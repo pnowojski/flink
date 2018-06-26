@@ -78,14 +78,6 @@ flink-connectors/flink-connector-kafka-0.10"
 MODULES_TESTS="\
 flink-tests"
 
-if [[ $PROFILE == *"include-kinesis"* ]]; then
-	case $TEST in
-		(connectors)
-			MODULES_CONNECTORS="$MODULES_CONNECTORS,flink-connectors/flink-connector-kinesis"
-		;;
-	esac
-fi
-
 MVN_COMPILE_MODULES=""
 MVN_COMPILE_OPTIONS=""
 MVN_TEST_MODULES=""
@@ -519,37 +511,6 @@ done
 # Make sure to kill the watchdog in any case after $MVN_COMPILE and $MVN_TEST have completed
 echo "Trying to KILL watchdog (${WD_PID})."
 ( kill $WD_PID 2>&1 ) > /dev/null
-
-# only misc builds flink-dist and flink-yarn-tests
-case $TEST in
-	(misc)
-		put_yarn_logs_to_artifacts
-
-		if [ $EXIT_CODE == 0 ]; then
-			check_shaded_artifacts
-			EXIT_CODE=$?
-		else
-			echo "=============================================================================="
-			echo "Compilation/test failure detected, skipping shaded dependency check."
-			echo "=============================================================================="
-		fi
-	;;
-	(connectors)
-		if [ $EXIT_CODE == 0 ]; then
-			check_shaded_artifacts_s3_fs hadoop
-			EXIT_CODE=$(($EXIT_CODE+$?))
-			check_shaded_artifacts_s3_fs presto
-			check_shaded_artifacts_connector_elasticsearch ""
-			check_shaded_artifacts_connector_elasticsearch 2
-			check_shaded_artifacts_connector_elasticsearch 5
-			EXIT_CODE=$(($EXIT_CODE+$?))
-		else
-			echo "=============================================================================="
-			echo "Compilation/test failure detected, skipping shaded dependency check."
-			echo "=============================================================================="
-		fi
-	;;
-esac
 
 upload_artifacts_s3
 
