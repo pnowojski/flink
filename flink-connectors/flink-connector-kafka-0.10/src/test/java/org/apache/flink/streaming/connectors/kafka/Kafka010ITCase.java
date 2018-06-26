@@ -55,113 +55,113 @@ public class Kafka010ITCase extends KafkaConsumerTestBase {
 	//  Suite of Tests
 	// ------------------------------------------------------------------------
 
-	@Test(timeout = 60000)
+	@Test
 	public void testFailOnNoBroker() throws Exception {
 		runFailOnNoBrokerTest();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testConcurrentProducerConsumerTopology() throws Exception {
 		runSimpleConcurrentProducerConsumerTopology();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testKeyValueSupport() throws Exception {
 		runKeyValueTest();
 	}
 
 	// --- canceling / failures ---
 
-	@Test(timeout = 60000)
+	@Test
 	public void testCancelingEmptyTopic() throws Exception {
 		runCancelingOnEmptyInputTest();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testCancelingFullTopic() throws Exception {
 		runCancelingOnFullInputTest();
 	}
 	// --- source to partition mappings and exactly once ---
 
-	@Test(timeout = 60000)
+	@Test
 	public void testOneToOneSources() throws Exception {
 		runOneToOneExactlyOnceTest();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testOneSourceMultiplePartitions() throws Exception {
 		runOneSourceMultiplePartitionsExactlyOnceTest();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testMultipleSourcesOnePartition() throws Exception {
 		runMultipleSourcesOnePartitionExactlyOnceTest();
 	}
 
 	// --- broker failure ---
 
-	@Test(timeout = 60000)
+	@Test
 	public void testBrokerFailure() throws Exception {
 		runBrokerFailureTest();
 	}
 
 	// --- special executions ---
 
-	@Test(timeout = 60000)
+	@Test
 	public void testBigRecordJob() throws Exception {
 		runBigRecordTestTopology();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testMultipleTopics() throws Exception {
 		runProduceConsumeMultipleTopics();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testAllDeletes() throws Exception {
 		runAllDeletesTest();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testMetricsAndEndOfStream() throws Exception {
 		runEndOfStreamTest();
 	}
 
 	// --- startup mode ---
 
-	@Test(timeout = 60000)
+	@Test
 	public void testStartFromEarliestOffsets() throws Exception {
 		runStartFromEarliestOffsets();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testStartFromLatestOffsets() throws Exception {
 		runStartFromLatestOffsets();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testStartFromGroupOffsets() throws Exception {
 		runStartFromGroupOffsets();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testStartFromSpecificOffsets() throws Exception {
 		runStartFromSpecificOffsets();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testStartFromTimestamp() throws Exception {
 		runStartFromTimestamp();
 	}
 
 	// --- offset committing ---
 
-	@Test(timeout = 60000)
+	@Test
 	public void testCommitOffsetsToKafka() throws Exception {
 		runCommitOffsetsToKafka();
 	}
 
-	@Test(timeout = 60000)
+	@Test
 	public void testAutoOffsetRetrievalAndCommitToKafka() throws Exception {
 		runAutoOffsetRetrievalAndCommitToKafka();
 	}
@@ -169,7 +169,7 @@ public class Kafka010ITCase extends KafkaConsumerTestBase {
 	/**
 	 * Kafka 0.10 specific test, ensuring Timestamps are properly written to and read from Kafka.
 	 */
-	@Test(timeout = 60000)
+	@Test
 	public void testTimestamps() throws Exception {
 
 		final String topic = "tstopic";
