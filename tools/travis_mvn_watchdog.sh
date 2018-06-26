@@ -73,41 +73,10 @@ flink-queryable-state/flink-queryable-state-runtime,\
 flink-queryable-state/flink-queryable-state-client-java"
 
 MODULES_CONNECTORS="\
-flink-contrib/flink-connector-wikiedits,\
-flink-filesystems/flink-hadoop-fs,\
-flink-filesystems/flink-mapr-fs,\
-flink-filesystems/flink-s3-fs-hadoop,\
-flink-filesystems/flink-s3-fs-presto,\
-flink-formats/flink-avro,\
-flink-connectors/flink-hbase,\
-flink-connectors/flink-hcatalog,\
-flink-connectors/flink-hadoop-compatibility,\
-flink-connectors/flink-jdbc,\
-flink-connectors/flink-connector-cassandra,\
-flink-connectors/flink-connector-elasticsearch,\
-flink-connectors/flink-connector-elasticsearch2,\
-flink-connectors/flink-connector-elasticsearch5,\
-flink-connectors/flink-connector-elasticsearch-base,\
-flink-connectors/flink-connector-filesystem,\
-flink-connectors/flink-connector-kafka-0.8,\
-flink-connectors/flink-connector-kafka-0.9,\
-flink-connectors/flink-connector-kafka-0.10,\
-flink-connectors/flink-connector-kafka-0.11,\
-flink-connectors/flink-connector-kafka-base,\
-flink-connectors/flink-connector-nifi,\
-flink-connectors/flink-connector-rabbitmq,\
-flink-connectors/flink-connector-twitter"
+flink-connectors/flink-connector-kafka-0.10"
 
 MODULES_TESTS="\
 flink-tests"
-
-if [[ $PROFILE == *"include-kinesis"* ]]; then
-	case $TEST in
-		(connectors)
-			MODULES_CONNECTORS="$MODULES_CONNECTORS,flink-connectors/flink-connector-kinesis"
-		;;
-	esac
-fi
 
 MVN_COMPILE_MODULES=""
 MVN_COMPILE_OPTIONS=""
@@ -513,63 +482,35 @@ rm $MVN_PID
 rm $MVN_EXIT
 
 # Run tests if compilation was successful
-if [ $EXIT_CODE == 0 ]; then
+for i in {1..4}
+do
+	if [ $EXIT_CODE == 0 ]; then
 
-	echo "RUNNING '${MVN_TEST}'."
+		echo "RUNNING '${MVN_TEST}'."
 
-	# Run $MVN_TEST and pipe output to $MVN_OUT for the watchdog. The PID is written to $MVN_PID to
-	# allow the watchdog to kill $MVN if it is not producing any output anymore. $MVN_EXIT contains
-	# the exit code. This is important for Travis' build life-cycle (success/failure).
-	( $MVN_TEST & PID=$! ; echo $PID >&3 ; wait $PID ; echo $? >&4 ) 3>$MVN_PID 4>$MVN_EXIT | tee $MVN_OUT
+		# Run $MVN_TEST and pipe output to $MVN_OUT for the watchdog. The PID is written to $MVN_PID to
+		# allow the watchdog to kill $MVN if it is not producing any output anymore. $MVN_EXIT contains
+		# the exit code. This is important for Travis' build life-cycle (success/failure).
+		( $MVN_TEST & PID=$! ; echo $PID >&3 ; wait $PID ; echo $? >&4 ) 3>$MVN_PID 4>$MVN_EXIT | tee $MVN_OUT
 
-	EXIT_CODE=$(<$MVN_EXIT)
+		EXIT_CODE=$(<$MVN_EXIT)
 
-	echo "MVN exited with EXIT CODE: ${EXIT_CODE}."
+		echo "MVN exited with EXIT CODE: ${EXIT_CODE}."
 
-	rm $MVN_PID
-	rm $MVN_EXIT
-else
-	echo "=============================================================================="
-	echo "Compilation failure detected, skipping test execution."
-	echo "=============================================================================="
-fi
+		rm $MVN_PID
+		rm $MVN_EXIT
+	else
+		echo "=============================================================================="
+		echo "Compilation failure detected, skipping test execution."
+		echo "=============================================================================="
+	fi
+done
 
 # Post
 
 # Make sure to kill the watchdog in any case after $MVN_COMPILE and $MVN_TEST have completed
 echo "Trying to KILL watchdog (${WD_PID})."
 ( kill $WD_PID 2>&1 ) > /dev/null
-
-# only misc builds flink-dist and flink-yarn-tests
-case $TEST in
-	(misc)
-		put_yarn_logs_to_artifacts
-
-		if [ $EXIT_CODE == 0 ]; then
-			check_shaded_artifacts
-			EXIT_CODE=$?
-		else
-			echo "=============================================================================="
-			echo "Compilation/test failure detected, skipping shaded dependency check."
-			echo "=============================================================================="
-		fi
-	;;
-	(connectors)
-		if [ $EXIT_CODE == 0 ]; then
-			check_shaded_artifacts_s3_fs hadoop
-			EXIT_CODE=$(($EXIT_CODE+$?))
-			check_shaded_artifacts_s3_fs presto
-			check_shaded_artifacts_connector_elasticsearch ""
-			check_shaded_artifacts_connector_elasticsearch 2
-			check_shaded_artifacts_connector_elasticsearch 5
-			EXIT_CODE=$(($EXIT_CODE+$?))
-		else
-			echo "=============================================================================="
-			echo "Compilation/test failure detected, skipping shaded dependency check."
-			echo "=============================================================================="
-		fi
-	;;
-esac
 
 upload_artifacts_s3
 
