@@ -76,25 +76,70 @@ jobs:
     # main profile
     - stage: compile
       script: ./tools/travis_controller.sh
-      env: PROFILE="-Dhadoop.version=2.8.3 -Pinclude-kinesis -Dinclude_hadoop_aws"
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
       name: compile
     - stage: test
       script: ./tools/travis_controller.sh
-      env: PROFILE="-Dhadoop.version=2.8.3 -Pinclude-kinesis -Dinclude_hadoop_aws"
-      name: core
-    - script: ./tools/travis_controller.sh
-      env: PROFILE="-Dhadoop.version=2.8.3 -Pinclude-kinesis -Dinclude_hadoop_aws"
-      name: libraries
-    - script: ./tools/travis_controller.sh
-      env: PROFILE="-Dhadoop.version=2.8.3 -Pinclude-kinesis -Dinclude_hadoop_aws"
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
       name: connectors
     - script: ./tools/travis_controller.sh
-      env: PROFILE="-Dhadoop.version=2.8.3 -Pinclude-kinesis -Dinclude_hadoop_aws"
-      name: tests
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
     - script: ./tools/travis_controller.sh
-      env: PROFILE="-Dhadoop.version=2.8.3 -Pinclude-kinesis -Dinclude_hadoop_aws"
-      name: misc
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
+    - script: ./tools/travis_controller.sh
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
+      name: connectors
     - stage: cleanup
       script: ./tools/travis_controller.sh
-      env: PROFILE="-Dhadoop.version=2.8.3 -Pinclude-kinesis -Dinclude_hadoop_aws"
+      env: PROFILE="-Dhadoop.version=2.8.3 -Dinclude_hadoop_aws"
       name: cleanup
