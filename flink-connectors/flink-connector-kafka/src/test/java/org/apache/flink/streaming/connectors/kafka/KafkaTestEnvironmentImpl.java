@@ -360,6 +360,7 @@ public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 				// ignore
 			}
 		}
+		super.shutdown();
 	}
 
 	protected KafkaServer getKafkaServer(int brokerId, File tmpFolder) throws Exception {
