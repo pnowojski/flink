@@ -1,5 +1,5 @@
 0
-50
+51
 __transaction_state 42 0
 __transaction_state 31 1
 __transaction_state 45 0
@@ -27,6 +27,7 @@ __transaction_state 10 0
 __transaction_state 44 0
 __transaction_state 9 0
 __transaction_state 22 2
+flink-kafka-producer-migration-test 0 4
 __transaction_state 43 0
 __transaction_state 4 1
 __transaction_state 30 1
