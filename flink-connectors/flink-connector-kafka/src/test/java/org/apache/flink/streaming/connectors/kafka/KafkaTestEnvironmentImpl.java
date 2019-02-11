@@ -48,7 +48,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.BindException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,25 +61,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import scala.collection.mutable.ArraySeq;
 
 import static org.apache.flink.util.NetUtils.hostAndPortToUrlString;
-import static org.junit.Assert.assertTrue;
+import static org.apache.flink.util.Preconditions.checkState;
 import static org.junit.Assert.fail;
 
 /**
- * An implementation of the KafkaServerProvider.
+ * An implementation of KafkaServerProvider.
  */
 public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 
 	protected static final Logger LOG = LoggerFactory.getLogger(KafkaTestEnvironmentImpl.class);
 	private final List<KafkaServer> brokers = new ArrayList<>();
-	private File tmpZkDir;
-	private File tmpKafkaParent;
 	private List<File> tmpKafkaDirs;
 	private TestingServer zookeeper;
 	private String zookeeperConnectionString;
@@ -104,16 +103,13 @@ public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 		this.config = config;
 
 		File tempDir = new File(System.getProperty("java.io.tmpdir"));
-		tmpZkDir = new File(tempDir, "kafkaITcase-zk-dir-" + (UUID.randomUUID().toString()));
-		assertTrue("cannot create zookeeper temp dir", tmpZkDir.mkdirs());
 
-		tmpKafkaParent = new File(tempDir, "kafkaITcase-kafka-dir-" + (UUID.randomUUID().toString()));
-		assertTrue("cannot create kafka temp dir", tmpKafkaParent.mkdirs());
+		tmpZkDir = initializeDirectoryFrom(config.getZooKeeperDirectory(), "kafka-ITCase-zookeeper-directory");
+		tmpKafkaParent = initializeDirectoryFrom(config.getKafkaDirectory(), "kafka-ITCase-kafka-directory");
 
 		tmpKafkaDirs = new ArrayList<>(config.getKafkaServersNumber());
 		for (int i = 0; i < config.getKafkaServersNumber(); i++) {
 			File tmpDir = new File(tmpKafkaParent, "server-" + i);
-			assertTrue("cannot create kafka temp dir", tmpDir.mkdir());
 			tmpKafkaDirs.add(tmpDir);
 		}
 
@@ -317,7 +313,7 @@ public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 	}
 
 	@Override
-	public void shutdown() throws Exception {
+	public void stop() throws Exception {
 		for (KafkaServer broker : brokers) {
 			if (broker != null) {
 				broker.shutdown();
@@ -334,7 +330,11 @@ public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 			}
 			zookeeper = null;
 		}
+	}
 
+	@Override
+	public void shutdown() throws Exception {
+		stop();
 		// clean up the temp spaces
 
 		if (tmpKafkaParent != null && tmpKafkaParent.exists()) {
@@ -345,6 +345,7 @@ public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 				// ignore
 			}
 		}
+
 		if (tmpZkDir != null && tmpZkDir.exists()) {
 			try {
 				FileUtils.deleteDirectory(tmpZkDir);
@@ -353,6 +354,7 @@ public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 				// ignore
 			}
 		}
+
 		super.shutdown();
 	}
 
@@ -414,6 +416,16 @@ public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 		}
 
 		throw new Exception("Could not start Kafka after " + numTries + " retries due to port conflicts.");
+	}
+
+	private static File initializeDirectoryFrom(Optional<String> sourcePath, String directoryPrefix) throws IOException {
+		File directory = Files.createTempDirectory(directoryPrefix).toFile();
+		if (sourcePath.isPresent()) {
+			File sourceDirectory = new File(sourcePath.get());
+			checkState(sourceDirectory.exists(), "Directory [%s] doesn't exist", sourcePath);
+			FileUtils.copyDirectory(sourceDirectory, directory);
+		}
+		return directory;
 	}
 
 	private class KafkaOffsetHandlerImpl implements KafkaOffsetHandler {

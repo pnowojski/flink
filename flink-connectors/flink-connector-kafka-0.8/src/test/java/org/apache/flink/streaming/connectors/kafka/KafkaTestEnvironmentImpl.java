@@ -76,8 +76,6 @@ import static org.junit.Assert.fail;
 public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 
 	protected static final Logger LOG = LoggerFactory.getLogger(KafkaTestEnvironmentImpl.class);
-	private File tmpZkDir;
-	private File tmpKafkaParent;
 	private List<File> tmpKafkaDirs;
 	private List<KafkaServer> brokers;
 	private TestingServer zookeeper;

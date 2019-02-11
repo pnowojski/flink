@@ -28,12 +28,15 @@ import org.apache.flink.streaming.util.serialization.KeyedDeserializationSchemaW
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
 
 import kafka.server.KafkaServer;
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -48,6 +51,8 @@ public abstract class KafkaTestEnvironment {
 		private Properties kafkaServerProperties = null;
 		private boolean secureMode = false;
 		private boolean hideKafkaBehindProxy = false;
+		private Optional<String> zooKeeperDirectory = Optional.empty();
+		private Optional<String> kafkaDirectory = Optional.empty();
 
 		/**
 		 * Please use {@link KafkaTestEnvironment#createConfig()} method.
@@ -90,11 +95,38 @@ public abstract class KafkaTestEnvironment {
 			this.hideKafkaBehindProxy = hideKafkaBehindProxy;
 			return this;
 		}
+
+		public Config setZooKeeperDirectory(String zooKeeperDirectory) {
+			this.zooKeeperDirectory = Optional.of(zooKeeperDirectory);
+			return this;
+		}
+
+		public Optional<String> getZooKeeperDirectory() {
+			return zooKeeperDirectory;
+		}
+
+		public Config setKafkaDirectory(String kafkaDirectory) {
+			this.kafkaDirectory = Optional.of(kafkaDirectory);
+			return this;
+		}
+		public Optional<String> getKafkaDirectory() {
+			return kafkaDirectory;
+		}
 	}
 
 	protected static final String KAFKA_HOST = "localhost";
 
 	protected final List<NetworkFailuresProxy> networkFailuresProxies = new ArrayList<>();
+	protected File tmpZkDir;
+	protected File tmpKafkaParent;
+
+	public void copyZooKeeperDirectory(String destination) throws Exception {
+		FileUtils.copyDirectory(tmpZkDir, new File(destination));
+	}
+
+	public void copyKafkaDirectory(String destination) throws Exception {
+		FileUtils.copyDirectory(tmpKafkaParent, new File(destination));
+	}
 
 	public static Config createConfig() {
 		return new Config();
@@ -102,10 +134,21 @@ public abstract class KafkaTestEnvironment {
 
 	public abstract void prepare(Config config) throws Exception;
 
+	/**
+	 * Stop the clusters and release/clean up all of the resources.
+	 */
 	public void shutdown() throws Exception {
 		for (NetworkFailuresProxy proxy : networkFailuresProxies) {
 			proxy.close();
 		}
+	}
+
+	/**
+	 * Stop the clusters, but keep the resources (like temporary directories). {@link #shutdown()}
+	 * must be called afterwards to release/clean up those resources.
+	 */
+	public void stop() throws Exception {
+		throw new UnsupportedOperationException();
 	}
 
 	public abstract void deleteTestTopic(String topic);
