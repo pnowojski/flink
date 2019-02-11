@@ -163,7 +163,9 @@ public abstract class KafkaTestBase extends TestLogger {
 	}
 
 	protected static void stopClusters() throws Exception {
-		kafkaServer.stop();
+		if (kafkaServer != null) {
+			kafkaServer.stop();
+		}
 	}
 
 	protected static void shutdownClusters() throws Exception {
@@ -171,7 +173,9 @@ public abstract class KafkaTestBase extends TestLogger {
 			secureProps.clear();
 		}
 
-		kafkaServer.shutdown();
+		if (kafkaServer != null) {
+			kafkaServer.shutdown();
+		}
 	}
 
 	// ------------------------------------------------------------------------
