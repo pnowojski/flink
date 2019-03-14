@@ -31,6 +31,7 @@ import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.core.fs.local.LocalFileSystem;
 import org.apache.flink.core.fs.local.LocalFileSystemFactory;
+import org.apache.flink.core.plugin.PluginLoader;
 import org.apache.flink.util.ExceptionUtils;
 
 import org.slf4j.Logger;
@@ -953,6 +954,8 @@ public abstract class FileSystem {
 		LOG.debug("Loading extension file systems via services");
 
 		try {
+			Iterator<FileSystemFactory> pluginsIter = new PluginLoader(new Path(".")).load(FileSystemFactory.class);
+
 			ServiceLoader<FileSystemFactory> serviceLoader = ServiceLoader.load(FileSystemFactory.class);
 			Iterator<FileSystemFactory> iter = serviceLoader.iterator();
 
