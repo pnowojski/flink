@@ -23,6 +23,7 @@ import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.DelegatingConfiguration;
 import org.apache.flink.configuration.MetricOptions;
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.metrics.MetricConfig;
 import org.apache.flink.metrics.reporter.InstantiateViaFactory;
 import org.apache.flink.metrics.reporter.MetricReporter;
@@ -126,7 +127,7 @@ public final class ReporterSetup {
 		return new ReporterSetup(reporterName, metricConfig, reporter);
 	}
 
-	public static List<ReporterSetup> fromConfiguration(final Configuration configuration) {
+	public static List<ReporterSetup> fromConfiguration(final Configuration configuration, final PluginManager pluginManager) {
 		String includedReportersString = configuration.getString(MetricOptions.REPORTERS_LIST, "");
 		Set<String> includedReporters = reporterListPattern.splitAsStream(includedReportersString)
 			.filter(r -> !r.isEmpty()) // splitting an empty string results in an empty string on jdk9+
