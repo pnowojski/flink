@@ -26,6 +26,8 @@ import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.concurrent.Future;
+import java.util.function.Function;
 
 import static org.apache.flink.util.Preconditions.checkState;
 
@@ -52,9 +54,10 @@ public final class BroadcastRecordWriter<T extends IOReadableWritable> extends R
 
 	BroadcastRecordWriter(
 			ResultPartitionWriter writer,
+			Function<Runnable, Future<?>> flushSubmit,
 			long timeout,
 			String taskName) {
-		super(writer, timeout, taskName);
+		super(writer, flushSubmit, timeout, taskName);
 	}
 
 	@Override

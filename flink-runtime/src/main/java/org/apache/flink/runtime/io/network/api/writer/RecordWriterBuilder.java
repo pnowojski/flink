@@ -20,12 +20,18 @@ package org.apache.flink.runtime.io.network.api.writer;
 
 import org.apache.flink.core.io.IOReadableWritable;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import java.util.function.Function;
+
 /**
  * Utility class to encapsulate the logic of building a {@link RecordWriter} instance.
  */
 public class RecordWriterBuilder<T extends IOReadableWritable> {
 
 	private ChannelSelector<T> selector = new RoundRobinChannelSelector<>();
+
+	private Function<Runnable, Future<?>> flushSubmit = this::runLocally;
 
 	private long timeout = -1;
 
@@ -37,7 +43,16 @@ public class RecordWriterBuilder<T extends IOReadableWritable> {
 	}
 
 	public RecordWriterBuilder<T> setTimeout(long timeout) {
+		return setupOutpuFlusher(this::runLocally, timeout);
+	}
+
+	public RecordWriterBuilder<T> setupOutpuFlusher(
+		Function<Runnable, Future<?>> flushSubmit,
+		long timeout) {
 		this.timeout = timeout;
+		if (flushSubmit != null) {
+			this.flushSubmit = flushSubmit;
+		}
 		return this;
 	}
 
@@ -48,9 +63,14 @@ public class RecordWriterBuilder<T extends IOReadableWritable> {
 
 	public RecordWriter<T> build(ResultPartitionWriter writer) {
 		if (selector.isBroadcast()) {
-			return new BroadcastRecordWriter<>(writer, timeout, taskName);
+			return new BroadcastRecordWriter(writer, flushSubmit, timeout, taskName);
 		} else {
-			return new ChannelSelectorRecordWriter<>(writer, selector, timeout, taskName);
+			return new ChannelSelectorRecordWriter<>(writer, selector, flushSubmit, timeout, taskName);
 		}
+	}
+
+	private Future<?> runLocally(Runnable runnable) {
+		runnable.run();
+		return CompletableFuture.completedFuture(null);
 	}
 }

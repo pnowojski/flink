@@ -40,6 +40,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import java.util.function.Function;
 
 import static org.apache.flink.runtime.io.network.api.serialization.RecordSerializer.SerializationResult;
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -87,7 +89,11 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
 	/** To avoid synchronization overhead on the critical path, best-effort error tracking is enough here.*/
 	private Throwable flusherException;
 
-	RecordWriter(ResultPartitionWriter writer, long timeout, String taskName) {
+	RecordWriter(
+			ResultPartitionWriter writer,
+			Function<Runnable, Future<?>> flushSubmit,
+			long timeout,
+			String taskName) {
 		this.targetPartition = writer;
 		this.numberOfChannels = writer.getNumberOfSubpartitions();
 
@@ -102,7 +108,7 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
 				DEFAULT_OUTPUT_FLUSH_THREAD_NAME :
 				DEFAULT_OUTPUT_FLUSH_THREAD_NAME + " for " + taskName;
 
-			outputFlusher = new OutputFlusher(threadName, timeout);
+			outputFlusher = new OutputFlusher(threadName, flushSubmit, timeout);
 			outputFlusher.start();
 		}
 	}
@@ -287,11 +293,14 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
 
 		private final long timeout;
 
+		private final Function<Runnable, Future<?>> flushSubmit;
+
 		private volatile boolean running = true;
 
-		OutputFlusher(String name, long timeout) {
+		OutputFlusher(String name, Function<Runnable, Future<?>> flushSubmit, long timeout) {
 			super(name);
 			setDaemon(true);
+			this.flushSubmit = flushSubmit;
 			this.timeout = timeout;
 		}
 
@@ -303,8 +312,13 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
 		@Override
 		public void run() {
 			try {
+				Future<?> future = null;
+
 				while (running) {
 					try {
+						if (future != null) {
+							future.get();
+						}
 						Thread.sleep(timeout);
 					} catch (InterruptedException e) {
 						// propagate this if we are still running, because it should not happen
@@ -316,7 +330,8 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
 
 					// any errors here should let the thread come to a halt and be
 					// recognized by the writer
-					flushAll();
+					future = flushSubmit.apply(RecordWriter.this::flushAll);
+//					flushAll();
 				}
 			} catch (Throwable t) {
 				notifyFlusherException(t);

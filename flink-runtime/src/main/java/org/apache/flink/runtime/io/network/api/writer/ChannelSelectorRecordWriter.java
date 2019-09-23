@@ -22,6 +22,8 @@ import org.apache.flink.core.io.IOReadableWritable;
 import org.apache.flink.runtime.io.network.buffer.BufferBuilder;
 
 import java.io.IOException;
+import java.util.concurrent.Future;
+import java.util.function.Function;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
@@ -45,9 +47,10 @@ public final class ChannelSelectorRecordWriter<T extends IOReadableWritable> ext
 	ChannelSelectorRecordWriter(
 			ResultPartitionWriter writer,
 			ChannelSelector<T> channelSelector,
+			Function<Runnable, Future<?>> flushSubmit,
 			long timeout,
 			String taskName) {
-		super(writer, timeout, taskName);
+		super(writer, flushSubmit, timeout, taskName);
 
 		this.channelSelector = checkNotNull(channelSelector);
 		this.channelSelector.setup(numberOfChannels);

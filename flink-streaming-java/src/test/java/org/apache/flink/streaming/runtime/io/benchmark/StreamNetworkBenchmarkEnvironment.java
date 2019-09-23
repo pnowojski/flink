@@ -47,6 +47,8 @@ import org.apache.flink.runtime.taskmanager.NoOpTaskActions;
 import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 import org.apache.flink.runtime.util.ConfigurationParserUtils;
 import org.apache.flink.runtime.util.NettyShuffleDescriptorBuilder;
+import org.apache.flink.streaming.runtime.tasks.mailbox.MailboxDefaultAction;
+import org.apache.flink.streaming.runtime.tasks.mailbox.MailboxProcessor;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -85,6 +87,9 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 	private int dataPort;
 
 	private SingleInputGateFactory gateFactory;
+
+	private MailboxProcessor mailboxProcessor;
+	private Thread mailboxThread;
 
 	public void setUp(
 			int writers,
@@ -151,11 +156,31 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 			receiverEnv.getNetworkBufferPool());
 
 		generatePartitionIds();
+
+		mailboxThread = new MailboxThread();
+
+		this.mailboxProcessor = new MailboxProcessor(this::empty);
+
+		mailboxThread.start();
+	}
+
+	private void empty(MailboxDefaultAction.Controller defaultActionContext) {
+		defaultActionContext.suspendDefaultAction();
 	}
 
 	public void tearDown() {
+		mailboxProcessor.allActionsCompleted();
+		mailboxProcessor.prepareClose();
+
 		suppressExceptions(senderEnv::close);
 		suppressExceptions(receiverEnv::close);
+		suppressExceptions(mailboxProcessor::close);
+
+		try {
+			mailboxThread.join();
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public SerializingLongReceiver createReceiver() throws Exception {
@@ -278,5 +303,16 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 			.setProducerInfoFromTaskManagerLocation(senderLocation)
 			.setConnectionIndex(channel);
 		return localMode ? builder.setProducerLocation(location).buildLocal() : builder.buildRemote();
+	}
+
+	private class MailboxThread extends Thread {
+		@Override
+		public void run() {
+			try {
+				mailboxProcessor.runMailboxLoop();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

@@ -253,8 +253,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		this.uncaughtExceptionHandler = Preconditions.checkNotNull(uncaughtExceptionHandler);
 		this.configuration = new StreamConfig(getTaskConfiguration());
 		this.accumulatorMap = getEnvironment().getAccumulatorRegistry().getUserMap();
-		this.recordWriter = createRecordWriterDelegate(configuration, environment);
 		this.mailboxProcessor = new MailboxProcessor(this::processInput);
+		this.recordWriter = createRecordWriterDelegate(configuration, environment, mailboxProcessor.getMainMailboxExecutor());
 		this.asyncExceptionHandler = new StreamTaskAsyncExceptionHandler(environment);
 	}
 
@@ -1398,10 +1398,12 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	@VisibleForTesting
 	public static <OUT> RecordWriterDelegate<SerializationDelegate<StreamRecord<OUT>>> createRecordWriterDelegate(
 			StreamConfig configuration,
-			Environment environment) {
+			Environment environment,
+			MailboxExecutor mailboxExecutor) {
 		List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> recordWrites = createRecordWriters(
 			configuration,
-			environment);
+			environment,
+			mailboxExecutor);
 		if (recordWrites.size() == 1) {
 			return new SingleRecordWriter<>(recordWrites.get(0));
 		} else if (recordWrites.size() == 0) {
@@ -1413,7 +1415,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 	private static <OUT> List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> createRecordWriters(
 			StreamConfig configuration,
-			Environment environment) {
+			Environment environment,
+			MailboxExecutor mailboxExecutor) {
 		List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> recordWriters = new ArrayList<>();
 		List<StreamEdge> outEdgesInOrder = configuration.getOutEdgesInOrder(environment.getUserClassLoader());
 		Map<Integer, StreamConfig> chainedConfigs = configuration.getTransitiveChainedTaskConfigsWithSelf(environment.getUserClassLoader());
@@ -1426,7 +1429,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 					i,
 					environment,
 					environment.getTaskInfo().getTaskName(),
-					chainedConfigs.get(edge.getSourceId()).getBufferTimeout()));
+					chainedConfigs.get(edge.getSourceId()).getBufferTimeout(),
+					mailboxExecutor));
 		}
 		return recordWriters;
 	}
@@ -1436,7 +1440,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 			int outputIndex,
 			Environment environment,
 			String taskName,
-			long bufferTimeout) {
+			long bufferTimeout,
+			MailboxExecutor mailboxExecutor) {
 		@SuppressWarnings("unchecked")
 		StreamPartitioner<OUT> outputPartitioner = (StreamPartitioner<OUT>) edge.getPartitioner();
 
@@ -1454,7 +1459,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 		RecordWriter<SerializationDelegate<StreamRecord<OUT>>> output = new RecordWriterBuilder<SerializationDelegate<StreamRecord<OUT>>>()
 			.setChannelSelector(outputPartitioner)
-			.setTimeout(bufferTimeout)
+			.setupOutpuFlusher((runnable) -> mailboxExecutor.submit(runnable, "OutputFlusher"), bufferTimeout)
 			.setTaskName(taskName)
 			.build(bufferWriter);
 		output.setMetricGroup(environment.getMetricGroup().getIOMetricGroup());
