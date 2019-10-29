@@ -25,6 +25,7 @@ import org.apache.flink.streaming.runtime.tasks.OperatorChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
@@ -40,7 +41,7 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 
 	private static final Logger LOG = LoggerFactory.getLogger(StreamOneInputProcessor.class);
 
-	private final StreamTaskInput<IN> input;
+	private final PushingAsyncDataInput<IN> input;
 	private final DataOutput<IN> output;
 
 	private final Object lock;
@@ -48,7 +49,7 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 	private final OperatorChain<?, ?> operatorChain;
 
 	public StreamOneInputProcessor(
-			StreamTaskInput<IN> input,
+			PushingAsyncDataInput<IN> input,
 			DataOutput<IN> output,
 			Object lock,
 			OperatorChain<?, ?> operatorChain) {
@@ -79,6 +80,8 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 
 	@Override
 	public void close() throws IOException {
-		input.close();
+		if (input instanceof Closeable) {
+			((Closeable) input).close();
+		}
 	}
 }

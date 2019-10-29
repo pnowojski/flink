@@ -24,6 +24,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.dag.Transformation;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
 import org.apache.flink.streaming.api.operators.SimpleOperatorFactory;
+import org.apache.flink.streaming.api.operators.SourceFunctionReaderOperator;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
 import org.apache.flink.streaming.api.operators.StreamSource;
 
@@ -51,7 +52,7 @@ public class SourceTransformation<T> extends PhysicalTransformation<T> {
 	 */
 	public SourceTransformation(
 			String name,
-			StreamSource<T, ?> operator,
+			SourceFunctionReaderOperator<T> operator,
 			TypeInformation<T> outputType,
 			int parallelism) {
 		this(name, SimpleOperatorFactory.of(operator), outputType, parallelism);

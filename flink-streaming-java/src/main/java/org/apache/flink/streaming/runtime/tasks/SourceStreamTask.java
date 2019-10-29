@@ -24,8 +24,8 @@ import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.streaming.api.checkpoint.ExternallyInducedSource;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.operators.SourceFunctionReaderOperator;
 import org.apache.flink.streaming.api.operators.StreamSource;
-import org.apache.flink.streaming.runtime.tasks.mailbox.execution.DefaultActionContext;
 import org.apache.flink.util.FlinkException;
 
 import java.util.Optional;
@@ -47,10 +47,8 @@ import java.util.concurrent.Future;
  * @param <OP> Type of the stream source operator
  */
 @Internal
-public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends StreamSource<OUT, SRC>>
-	extends StreamTask<OUT, OP> {
-
-	private final LegacySourceFunctionThread sourceThread;
+public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends SourceFunctionReaderOperator<OUT>>
+	extends SourceReaderStreamTask<OUT, OP> {
 
 	private volatile boolean externallyInducedCheckpoints;
 
@@ -62,14 +60,13 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 
 	public SourceStreamTask(Environment env) {
 		super(env);
-		this.sourceThread = new LegacySourceFunctionThread();
 	}
 
 	@Override
-	protected void init() {
+	public void init() {
 		// we check if the source is actually inducing the checkpoints, rather
 		// than the trigger
-		SourceFunction<?> source = headOperator.getUserFunction();
+		SourceFunction<?> source = headOperator.getSourceFunction();
 		if (source instanceof ExternallyInducedSource) {
 			externallyInducedCheckpoints = true;
 
@@ -100,6 +97,11 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 
 			((ExternallyInducedSource<?, ?>) source).setCheckpointTrigger(triggerHook);
 		}
+
+		super.init();
+
+		headOperator.setTaskDescription(getName());
+		headOperator.start();
 	}
 
 	@Override
@@ -110,24 +112,6 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 	@Override
 	protected void cleanup() {
 		// does not hold any resources, so no cleanup needed
-	}
-
-	@Override
-	protected void processInput(DefaultActionContext context) throws Exception {
-
-		context.suspendDefaultAction();
-
-		// Against the usual contract of this method, this implementation is not step-wise but blocking instead for
-		// compatibility reasons with the current source interface (source functions run as a loop, not in steps).
-		sourceThread.setTaskDescription(getName());
-		sourceThread.start();
-		sourceThread.getCompletionFuture().whenComplete((Void ignore, Throwable sourceThreadThrowable) -> {
-			if (sourceThreadThrowable == null || isFinished) {
-				mailboxProcessor.allActionsCompleted();
-			} else {
-				mailboxProcessor.reportThrowable(sourceThreadThrowable);
-			}
-		});
 	}
 
 	@Override
@@ -145,7 +129,7 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 
 	@Override
 	public Optional<Thread> getExecutingThread() {
-		return Optional.of(sourceThread);
+		return Optional.of(headOperator.getExecutingThread());
 	}
 
 	// ------------------------------------------------------------------------
@@ -177,36 +161,6 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 		// For externally induced checkpoints, the exception would be passed via triggerCheckpointAsync future.
 		if (!externallyInducedCheckpoints) {
 			super.handleCheckpointException(exception);
-		}
-	}
-
-	/**
-	 * Runnable that executes the the source function in the head operator.
-	 */
-	private class LegacySourceFunctionThread extends Thread {
-
-		private final CompletableFuture<Void> completionFuture;
-
-		LegacySourceFunctionThread() {
-			this.completionFuture = new CompletableFuture<>();
-		}
-
-		@Override
-		public void run() {
-			try {
-				headOperator.run(getCheckpointLock(), getStreamStatusMaintainer(), operatorChain);
-				completionFuture.complete(null);
-			} catch (Throwable t) {
-				completionFuture.completeExceptionally(t);
-			}
-		}
-
-		public void setTaskDescription(final String taskDescription) {
-			setName("Legacy Source Thread - " + taskDescription);
-		}
-
-		CompletableFuture<Void> getCompletionFuture() {
-			return completionFuture;
 		}
 	}
 }

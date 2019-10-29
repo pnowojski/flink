@@ -20,7 +20,7 @@ package org.apache.flink.streaming.api.datastream;
 import org.apache.flink.annotation.Public;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.operators.StreamSource;
+import org.apache.flink.streaming.api.operators.SourceFunctionReaderOperator;
 import org.apache.flink.streaming.api.transformations.SourceTransformation;
 
 /**
@@ -34,7 +34,7 @@ public class DataStreamSource<T> extends SingleOutputStreamOperator<T> {
 	boolean isParallel;
 
 	public DataStreamSource(StreamExecutionEnvironment environment,
-			TypeInformation<T> outTypeInfo, StreamSource<T, ?> operator,
+			TypeInformation<T> outTypeInfo, SourceFunctionReaderOperator<T> operator,
 			boolean isParallel, String sourceName) {
 		super(environment, new SourceTransformation<>(sourceName, operator, outTypeInfo, environment.getParallelism()));
 
