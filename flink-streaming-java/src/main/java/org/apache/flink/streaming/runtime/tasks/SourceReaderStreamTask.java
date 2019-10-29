@@ -38,7 +38,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * A subclass of {@link StreamTask} for executing the {@link SourceReaderOperator}.
  */
 @Internal
-public class SourceReaderStreamTask<T> extends StreamTask<T, SourceReaderOperator<T>> {
+public class SourceReaderStreamTask<T, OP extends SourceReaderOperator<T>> extends StreamTask<T, OP> {
 
 	public SourceReaderStreamTask(Environment env) {
 		super(env);

@@ -109,7 +109,9 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>> extends Abstract
 				// in theory, the subclasses of StreamSource may implement the BoundedOneInput interface,
 				// so we still need the following call to end the input
 				synchronized (lockingObject) {
-					operatorChain.endHeadOperatorInput(1);
+					if (operatorChain != null) {
+						operatorChain.endHeadOperatorInput(1);
+					}
 				}
 			}
 		} finally {

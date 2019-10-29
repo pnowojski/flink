@@ -47,18 +47,19 @@ import static org.apache.flink.util.Preconditions.checkState;
  * This handover buffer is then used by {@link SourceReaderOperator} to emitNext elements.
  */
 @Internal
-public class SourceFunctionReaderOperator<OUT> extends SourceReaderOperator<OUT>  {
+public class SourceFunctionReaderOperator<OUT> extends SourceReaderOperator<OUT> {
 
-	private final Queue<StreamRecord<OUT>> handoverBuffer = new ArrayDeque<>();
-	private final HandoverOutput handoverOutput = new HandoverOutput();
-	private final StreamSource<OUT, ?> streamSource;
-	private final AvailabilityHelper availabilityHelper = new AvailabilityHelper();
+	private final StreamSource<OUT, SourceFunction<OUT>> streamSource;
 
 	/**
 	 * 	TODO: move to {@link StreamOperatorFactory} and make those fields final.
 	 */
 	private transient LegacySourceFunctionThread sourceFunctionThread;
 	private transient Object checkpointLock;
+	private transient Queue<OUT> handoverBuffer;
+	private transient HandoverOutput handoverOutput;
+	private transient AvailabilityHelper availabilityHelper;
+	private transient StreamRecord<OUT> reuse;
 
 	private boolean isFinished;
 	@Nullable
@@ -68,13 +69,19 @@ public class SourceFunctionReaderOperator<OUT> extends SourceReaderOperator<OUT>
 		this.streamSource = new StreamSource<>(sourceFunction);
 	}
 
+	public SourceFunction<OUT> getSourceFunction() {
+		return streamSource.getUserFunction();
+	}
+
 	@Override
 	public InputStatus emitNext(DataOutput<OUT> output) throws Exception {
 		synchronized (checkpointLock) {
 			checkErroneous();
 
 			if (!handoverBuffer.isEmpty()) {
-				output.emitRecord(handoverBuffer.poll());
+				OUT record = handoverBuffer.poll();
+				reuse.replace(record);
+				output.emitRecord(reuse);
 			}
 
 			if (!handoverBuffer.isEmpty()) {
@@ -103,10 +110,18 @@ public class SourceFunctionReaderOperator<OUT> extends SourceReaderOperator<OUT>
 			Output<StreamRecord<OUT>> output) {
 		super.setup(containingTask, config, output);
 
+		handoverBuffer = new ArrayDeque<>();
+		handoverOutput = new HandoverOutput();
+		availabilityHelper = new AvailabilityHelper();
+		reuse = new StreamRecord<OUT>(null);
+
 		streamSource.setup(containingTask, config, output);
 		checkpointLock = containingTask.getCheckpointLock();
-		sourceFunctionThread = new LegacySourceFunctionThread(containingTask.getStreamStatusMaintainer());
 
+		sourceFunctionThread = new LegacySourceFunctionThread(containingTask.getStreamStatusMaintainer());
+	}
+
+	public void start() {
 		sourceFunctionThread.run();
 	}
 
@@ -150,6 +165,19 @@ public class SourceFunctionReaderOperator<OUT> extends SourceReaderOperator<OUT>
 			isFinished = true;
 			asyncException = t;
 		}
+	}
+
+	public void advanceToEndOfEventTime() {
+		checkState(Thread.holdsLock(checkpointLock));
+		streamSource.advanceToEndOfEventTime();
+	}
+
+	public void setTaskDescription(final String taskDescription) {
+		sourceFunctionThread.setName("Legacy Source Thread - " + taskDescription);
+	}
+
+	public Thread getExecutingThread() {
+		return sourceFunctionThread;
 	}
 
 	/**
@@ -201,7 +229,7 @@ public class SourceFunctionReaderOperator<OUT> extends SourceReaderOperator<OUT>
 		@Override
 		public void collect(StreamRecord<OUT> record) {
 			boolean wasEmpty = handoverBuffer.isEmpty();
-			handoverBuffer.add(record);
+			handoverBuffer.add(record.getValue());
 			if (wasEmpty) {
 				availabilityHelper.getUnavailableToResetAvailable().complete(null);
 			}

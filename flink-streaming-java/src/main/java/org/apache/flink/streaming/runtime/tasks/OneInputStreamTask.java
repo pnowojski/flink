@@ -145,14 +145,14 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
 	 * The network data output implementation used for processing stream elements
 	 * from {@link StreamTaskNetworkInput} in one input processor.
 	 */
-	private static class StreamTaskNetworkOutput<IN> extends AbstractDataOutput<IN> {
+	public static class StreamTaskNetworkOutput<IN> extends AbstractDataOutput<IN> {
 
 		private final OneInputStreamOperator<IN, ?> operator;
 
 		private final WatermarkGauge watermarkGauge;
 		private final Counter numRecordsIn;
 
-		private StreamTaskNetworkOutput(
+		public StreamTaskNetworkOutput(
 				OneInputStreamOperator<IN, ?> operator,
 				StreamStatusMaintainer streamStatusMaintainer,
 				Object lock,

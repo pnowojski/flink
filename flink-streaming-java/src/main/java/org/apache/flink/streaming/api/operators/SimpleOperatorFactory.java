@@ -89,7 +89,7 @@ public class SimpleOperatorFactory<OUT> implements StreamOperatorFactory<OUT> {
 
 	@Override
 	public boolean isStreamSource() {
-		return operator instanceof StreamSource;
+		return operator instanceof StreamSource || operator instanceof SourceFunctionReaderOperator;
 	}
 
 	@Override
