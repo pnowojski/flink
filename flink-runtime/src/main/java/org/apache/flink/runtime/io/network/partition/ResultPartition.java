@@ -201,8 +201,26 @@ public class ResultPartition implements ResultPartitionWriter, BufferPoolOwner {
 
 	@Override
 	public void flushAll() {
-		for (ResultSubpartition subpartition : subpartitions) {
-			subpartition.flush();
+		// TODO: move notifyDataAvailable array to a field. Now it can not be done, because flushAll
+		// is being called from multiple threads (OutputFlusher and by task thread on regular end of input)
+		boolean[] notifyDataAvailable = new boolean[subpartitions.length];
+		synchronized (this) {
+			for (int i = 0; i < subpartitions.length; i++) {
+				ResultSubpartition subpartition = subpartitions[i];
+				if (subpartition instanceof PipelinedSubpartition) {
+					notifyDataAvailable[i] = ((PipelinedSubpartition) subpartition).flushUnsafe();
+				}
+				else {
+					notifyDataAvailable[i] = false;
+					subpartition.flush();
+					throw new UnsupportedOperationException();
+				}
+			}
+		}
+		for (int i = 0; i < notifyDataAvailable.length; i++) {
+			if (notifyDataAvailable[i]) {
+				((PipelinedSubpartition) subpartitions[i]).notifyDataAvailable();
+			}
 		}
 	}
 

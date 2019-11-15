@@ -61,6 +61,8 @@ class PipelinedSubpartition extends ResultSubpartition {
 	/** All buffers of this subpartition. Access to the buffers is synchronized on this object. */
 	private final ArrayDeque<BufferConsumer> buffers = new ArrayDeque<>();
 
+	private final Object lock;
+
 	/** The number of non-event buffers currently in this subpartition. */
 	@GuardedBy("buffers")
 	private int buffersInBacklog;
@@ -87,6 +89,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 
 	PipelinedSubpartition(int index, ResultPartition parent) {
 		super(index, parent);
+		this.lock = parent;
 	}
 
 	@Override
@@ -104,7 +107,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 		checkNotNull(bufferConsumer);
 
 		final boolean notifyDataAvailable;
-		synchronized (buffers) {
+		synchronized (lock) {
 			if (isFinished || isReleased) {
 				bufferConsumer.close();
 				return false;
@@ -131,7 +134,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 		// view reference accessible outside the lock, but assigned inside the locked scope
 		final PipelinedSubpartitionView view;
 
-		synchronized (buffers) {
+		synchronized (lock) {
 			if (isReleased) {
 				return;
 			}
@@ -158,7 +161,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 
 	@Nullable
 	BufferAndBacklog pollBuffer() {
-		synchronized (buffers) {
+		synchronized (lock) {
 			Buffer buffer = null;
 
 			if (buffers.isEmpty()) {
@@ -210,13 +213,13 @@ class PipelinedSubpartition extends ResultSubpartition {
 	}
 
 	boolean nextBufferIsEvent() {
-		synchronized (buffers) {
+		synchronized (lock) {
 			return nextBufferIsEventUnsafe();
 		}
 	}
 
 	private boolean nextBufferIsEventUnsafe() {
-		assert Thread.holdsLock(buffers);
+		assert Thread.holdsLock(lock);
 
 		return !buffers.isEmpty() && !buffers.peekFirst().isBuffer();
 	}
@@ -236,7 +239,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 	@Override
 	public PipelinedSubpartitionView createReadView(BufferAvailabilityListener availabilityListener) throws IOException {
 		final boolean notifyDataAvailable;
-		synchronized (buffers) {
+		synchronized (lock) {
 			checkState(!isReleased);
 			checkState(readView == null,
 					"Subpartition %s of is being (or already has been) consumed, " +
@@ -256,7 +259,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 	}
 
 	public boolean isAvailable() {
-		synchronized (buffers) {
+		synchronized (lock) {
 			return isAvailableUnsafe();
 		}
 	}
@@ -280,7 +283,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 		final boolean finished;
 		final boolean hasReadView;
 
-		synchronized (buffers) {
+		synchronized (lock) {
 			numBuffers = getTotalNumberOfBuffers();
 			numBytes = getTotalNumberOfBytes();
 			finished = isFinished;
@@ -301,18 +304,27 @@ class PipelinedSubpartition extends ResultSubpartition {
 	@Override
 	public void flush() {
 		final boolean notifyDataAvailable;
-		synchronized (buffers) {
-			if (buffers.isEmpty()) {
-				return;
-			}
-			// if there is more then 1 buffer, we already notified the reader
-			// (at the latest when adding the second buffer)
-			notifyDataAvailable = !flushRequested && buffers.size() == 1 && buffers.peek().isDataAvailable();
-			flushRequested = flushRequested || buffers.size() > 1 || notifyDataAvailable;
+
+		synchronized (lock) {
+			notifyDataAvailable = flushUnsafe();
 		}
+
 		if (notifyDataAvailable) {
 			notifyDataAvailable();
 		}
+	}
+
+	public boolean flushUnsafe() {
+		assert Thread.holdsLock(lock);
+		final boolean notifyDataAvailable;
+		if (buffers.isEmpty()) {
+			return false;
+		}
+		// if there is more then 1 buffer, we already notified the reader
+		// (at the latest when adding the second buffer)
+		notifyDataAvailable = !flushRequested && buffers.size() == 1 && buffers.peek().isDataAvailable();
+		flushRequested = flushRequested || buffers.size() > 1 || notifyDataAvailable;
+		return notifyDataAvailable;
 	}
 
 	@Override
@@ -339,7 +351,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 
 	@GuardedBy("buffers")
 	private void decreaseBuffersInBacklogUnsafe(boolean isBuffer) {
-		assert Thread.holdsLock(buffers);
+		assert Thread.holdsLock(lock);
 		if (isBuffer) {
 			buffersInBacklog--;
 		}
@@ -351,7 +363,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 	 */
 	@GuardedBy("buffers")
 	private void increaseBuffersInBacklog(BufferConsumer buffer) {
-		assert Thread.holdsLock(buffers);
+		assert Thread.holdsLock(lock);
 
 		if (buffer != null && buffer.isBuffer()) {
 			buffersInBacklog++;
@@ -379,14 +391,14 @@ class PipelinedSubpartition extends ResultSubpartition {
 		return readView != null && !flushRequested && getNumberOfFinishedBuffers() == 1;
 	}
 
-	private void notifyDataAvailable() {
+	public void notifyDataAvailable() {
 		if (readView != null) {
 			readView.notifyDataAvailable();
 		}
 	}
 
 	private int getNumberOfFinishedBuffers() {
-		assert Thread.holdsLock(buffers);
+		assert Thread.holdsLock(lock);
 
 		// NOTE: isFinished() is not guaranteed to provide the most up-to-date state here
 		// worst-case: a single finished buffer sits around until the next flush() call
