@@ -47,7 +47,6 @@ import org.apache.flink.runtime.taskmanager.NoOpTaskActions;
 import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 import org.apache.flink.runtime.util.ConfigurationParserUtils;
 import org.apache.flink.runtime.util.NettyShuffleDescriptorBuilder;
-import org.apache.flink.streaming.runtime.tasks.mailbox.MailboxDefaultAction;
 import org.apache.flink.streaming.runtime.tasks.mailbox.MailboxProcessor;
 
 import java.net.InetAddress;
@@ -156,16 +155,6 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 			receiverEnv.getNetworkBufferPool());
 
 		generatePartitionIds();
-
-		mailboxThread = new MailboxThread();
-
-		this.mailboxProcessor = new MailboxProcessor(this::empty);
-
-		mailboxThread.start();
-	}
-
-	private void empty(MailboxDefaultAction.Controller defaultActionContext) {
-		defaultActionContext.suspendDefaultAction();
 	}
 
 	public void tearDown() {
@@ -303,16 +292,5 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 			.setProducerInfoFromTaskManagerLocation(senderLocation)
 			.setConnectionIndex(channel);
 		return localMode ? builder.setProducerLocation(location).buildLocal() : builder.buildRemote();
-	}
-
-	private class MailboxThread extends Thread {
-		@Override
-		public void run() {
-			try {
-				mailboxProcessor.runMailboxLoop();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
 	}
 }

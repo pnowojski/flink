@@ -20,12 +20,14 @@ package org.apache.flink.streaming.runtime.io.benchmark;
 
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.runtime.io.network.api.writer.RecordWriter;
+import org.apache.flink.runtime.io.network.api.writer.RecordWriterBuilder;
+import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
+import org.apache.flink.streaming.runtime.tasks.mailbox.MailboxDefaultAction;
+import org.apache.flink.streaming.runtime.tasks.mailbox.MailboxProcessor;
 import org.apache.flink.types.LongValue;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
-import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
@@ -36,22 +38,32 @@ public class LongRecordWriterThread extends CheckedThread {
 	private final RecordWriter<LongValue> recordWriter;
 	private final boolean broadcastMode;
 
+	private final MailboxProcessor mailboxProcessor;
+
 	/**
 	 * Future to wait on a definition of the number of records to send.
 	 */
 	private CompletableFuture<Long> recordsToSend = new CompletableFuture<>();
 
-	private volatile boolean running = true;
+	private long currentRecordIteration = 0;
+	private long recordIterationLimit = -1;
 
 	public LongRecordWriterThread(
-			RecordWriter<LongValue> recordWriter,
-			boolean broadcastMode) {
-		this.recordWriter = checkNotNull(recordWriter);
+		RecordWriterBuilder<LongValue> recordWriterBuilder,
+		ResultPartitionWriter resultPartitionWriter,
+		int flushTimeout, boolean broadcastMode) {
 		this.broadcastMode = broadcastMode;
+
+		mailboxProcessor = new MailboxProcessor(this::defaultAction);
+		recordWriter = recordWriterBuilder
+			.setupOutpuFlusher(
+				runnable -> mailboxProcessor.getMainMailboxExecutor().submit(runnable, "OutputFluhser"),
+				flushTimeout)
+			.build(resultPartitionWriter);
 	}
 
 	public synchronized void shutdown() {
-		running = false;
+		mailboxProcessor.close();
 		recordsToSend.complete(0L);
 	}
 
@@ -76,22 +88,33 @@ public class LongRecordWriterThread extends CheckedThread {
 		recordsToSend = new CompletableFuture<>();
 	}
 
+	private void defaultAction(MailboxDefaultAction.Controller controller) {
+		try {
+			sendRecords();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+
 	@Override
 	public void go() throws Exception {
 		try {
-			while (running) {
-				sendRecords(getRecordsToSend().get());
-			}
+			mailboxProcessor.runMailboxLoop();
 		}
 		finally {
 			recordWriter.close();
 		}
 	}
 
-	private void sendRecords(long records) throws IOException, InterruptedException {
+	private void sendRecords() throws Exception {
 		LongValue value = new LongValue(0);
 
-		for (int i = 1; i < records; i++) {
+		if (recordIterationLimit < 0) {
+			recordIterationLimit = getRecordsToSend().get();
+			currentRecordIteration = 1;
+		}
+		else if (currentRecordIteration++ < recordIterationLimit) {
 			if (broadcastMode) {
 				recordWriter.broadcastEmit(value);
 			}
@@ -99,10 +122,11 @@ public class LongRecordWriterThread extends CheckedThread {
 				recordWriter.emit(value);
 			}
 		}
-		value.setValue(records);
-		recordWriter.broadcastEmit(value);
-		recordWriter.flushAll();
-
+		else {
+			value.setValue(recordIterationLimit);
+			recordWriter.broadcastEmit(value);
+			recordWriter.flushAll();
+		}
 		finishSendingRecords();
 	}
 }
