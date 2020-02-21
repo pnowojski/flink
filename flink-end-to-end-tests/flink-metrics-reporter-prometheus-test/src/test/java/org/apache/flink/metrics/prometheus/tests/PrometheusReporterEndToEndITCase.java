@@ -21,6 +21,7 @@ package org.apache.flink.metrics.prometheus.tests;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.prometheus.PrometheusReporter;
+import org.apache.flink.metrics.prometheus.PrometheusReporterFactory;
 import org.apache.flink.tests.util.AutoClosableProcess;
 import org.apache.flink.tests.util.CommandLineWrapper;
 import org.apache.flink.tests.util.FlinkDistribution;
@@ -66,6 +67,7 @@ public class PrometheusReporterEndToEndITCase extends TestLogger {
 
 	private static final String PROMETHEUS_VERSION = "2.4.3";
 	private static final String PROMETHEUS_FILE_NAME;
+	private static final String PROMETHEUS_JAR_PREFIX = "flink-metrics-prometheus";
 
 	static {
 		final String base = "prometheus-" + PROMETHEUS_VERSION + '.';
@@ -120,24 +122,51 @@ public class PrometheusReporterEndToEndITCase extends TestLogger {
 	public final DownloadCache downloadCache = DownloadCache.get();
 
 	@Test
-	public void testReporter() throws Exception {
-		dist.copyOptJarsToLib("flink-metrics-prometheus");
+	public void reporterWorksWhenFoundInLibsViaReflection() throws Exception {
+		dist.copyOptJarsToLib(PROMETHEUS_JAR_PREFIX);
+		testReporter(false);
+	}
 
+	@Test
+	public void reporterWorksWhenFoundInPluginsViaReflection() throws Exception {
+		dist.copyOptJarsToPlugins(PROMETHEUS_JAR_PREFIX);
+		testReporter(false);
+	}
+
+	@Test
+	public void reporterWorksWhenFoundInPluginsViaFactories() throws Exception {
+		dist.copyOptJarsToPlugins(PROMETHEUS_JAR_PREFIX);
+		testReporter(true);
+	}
+
+	@Test
+	public void reporterWorksWhenFoundBothInPluginsAndLibsViaFactories() throws Exception {
+		dist.copyOptJarsToPlugins(PROMETHEUS_JAR_PREFIX);
+		dist.copyOptJarsToLib(PROMETHEUS_JAR_PREFIX);
+		testReporter(true);
+	}
+
+	private void testReporter(boolean useFactory) throws Exception {
 		final Configuration config = new Configuration();
-		config.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "prom." + ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, PrometheusReporter.class.getCanonicalName());
+
+		if (useFactory) {
+			config.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "prom." + ConfigConstants.METRICS_REPORTER_FACTORY_CLASS_SUFFIX, PrometheusReporterFactory.class.getName());
+		} else {
+			config.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "prom." + ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, PrometheusReporter.class.getCanonicalName());
+		}
+
 		config.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "prom.port", "9000-9100");
 
 		dist.appendConfiguration(config);
 
 		final Path tmpPrometheusDir = tmp.newFolder().toPath().resolve("prometheus");
-		final Path prometheusArchive = tmpPrometheusDir.resolve(PROMETHEUS_FILE_NAME + ".tar.gz");
 		final Path prometheusBinDir = tmpPrometheusDir.resolve(PROMETHEUS_FILE_NAME);
 		final Path prometheusConfig = prometheusBinDir.resolve("prometheus.yml");
 		final Path prometheusBinary = prometheusBinDir.resolve("prometheus");
 		Files.createDirectory(tmpPrometheusDir);
 
-		downloadCache.getOrDownload(
-			"https://github.com/prometheus/prometheus/releases/download/v" + PROMETHEUS_VERSION + '/' + prometheusArchive.getFileName(),
+		final Path prometheusArchive = downloadCache.getOrDownload(
+			"https://github.com/prometheus/prometheus/releases/download/v" + PROMETHEUS_VERSION + '/' + PROMETHEUS_FILE_NAME + ".tar.gz",
 			tmpPrometheusDir
 		);
 
