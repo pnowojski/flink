@@ -30,9 +30,12 @@ import org.apache.flink.metrics.reporter.MetricReporter;
 import org.apache.flink.metrics.reporter.MetricReporterFactory;
 import org.apache.flink.runtime.metrics.scope.ScopeFormat;
 
+import org.apache.flink.shaded.guava18.com.google.common.collect.Iterators;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -121,55 +124,37 @@ public final class ReporterSetup {
 	}
 
 	private static ReporterSetup createReporterSetup(String reporterName, MetricConfig metricConfig, MetricReporter reporter) {
-		LOG.info("Configuring {} with {}.", reporterName, metricConfig);
+		LOG.debug("Configuring {} with {}.", reporterName, metricConfig);
 		reporter.open(metricConfig);
 
 		return new ReporterSetup(reporterName, metricConfig, reporter);
 	}
 
 	public static List<ReporterSetup> fromConfiguration(final Configuration configuration, final PluginManager pluginManager) {
+		LOG.debug("Initializing Reporters from Configuration: {}", configuration);
 		String includedReportersString = configuration.getString(MetricOptions.REPORTERS_LIST, "");
-		Set<String> includedReporters = reporterListPattern.splitAsStream(includedReportersString)
-			.filter(r -> !r.isEmpty()) // splitting an empty string results in an empty string on jdk9+
-			.collect(Collectors.toSet());
 
-		// use a TreeSet to make the reporter order deterministic, which is useful for testing
-		Set<String> namedReporters = new TreeSet<>(String::compareTo);
-		// scan entire configuration for "metric.reporter" keys and parse individual reporter configurations
-		for (String key : configuration.keySet()) {
-			if (key.startsWith(ConfigConstants.METRICS_REPORTER_PREFIX)) {
-				Matcher matcher = reporterClassPattern.matcher(key);
-				if (matcher.matches()) {
-					String reporterName = matcher.group(1);
-					if (includedReporters.isEmpty() || includedReporters.contains(reporterName)) {
-						if (namedReporters.contains(reporterName)) {
-							LOG.warn("Duplicate class configuration detected for reporter {}.", reporterName);
-						} else {
-							namedReporters.add(reporterName);
-						}
-					} else {
-						LOG.info("Excluding reporter {}, not configured in reporter list ({}).", reporterName, includedReportersString);
-					}
-				}
-			}
-		}
+		Set<String> namedReporters = findEnabledReportersInConfiguration(configuration,
+			includedReportersString);
 
 		if (namedReporters.isEmpty()) {
 			return Collections.emptyList();
 		}
 
-		List<Tuple2<String, Configuration>> reporterConfigurations = new ArrayList<>(namedReporters.size());
+		final Map<String, MetricReporterFactory> reporterFactories = loadAvailableReporterFactories(pluginManager);
+		LOG.debug("Loaded Reporter Factories: {}", reporterFactories);
+		final List<Tuple2<String, Configuration>> reporterConfigurations = loadReporterConfigurations(configuration, namedReporters);
+		LOG.debug("Loaded Reporter Configurations: {}", reporterConfigurations);
 
-		for (String namedReporter: namedReporters) {
-			DelegatingConfiguration delegatingConfiguration = new DelegatingConfiguration(
-				configuration,
-				ConfigConstants.METRICS_REPORTER_PREFIX + namedReporter + '.');
+		List<ReporterSetup> reporterSetups = setupReporters(reporterFactories, reporterConfigurations);
+		LOG.debug("All initialized Reporters:");
+		reporterSetups.forEach(i -> LOG.debug("{} - {}", i.getName(), i.getConfiguration()));
 
-			reporterConfigurations.add(Tuple2.of(namedReporter, delegatingConfiguration));
-		}
+		return reporterSetups;
+	}
 
-		final Map<String, MetricReporterFactory> reporterFactories = loadReporterFactories();
-		List<ReporterSetup> reporterArguments = new ArrayList<>(reporterConfigurations.size());
+	private static List<ReporterSetup> setupReporters(Map<String, MetricReporterFactory> reporterFactories, List<Tuple2<String, Configuration>> reporterConfigurations) {
+		List<ReporterSetup> reporterSetups = new ArrayList<>(reporterConfigurations.size());
 		for (Tuple2<String, Configuration> reporterConfiguration: reporterConfigurations) {
 			String reporterName = reporterConfiguration.f0;
 			Configuration reporterConfig = reporterConfiguration.f1;
@@ -179,34 +164,95 @@ public final class ReporterSetup {
 				metricReporterOptional.ifPresent(reporter -> {
 					MetricConfig metricConfig = new MetricConfig();
 					reporterConfig.addAllToProperties(metricConfig);
-
-					reporterArguments.add(createReporterSetup(reporterName, metricConfig, reporter));
+					reporterSetups.add(createReporterSetup(reporterName, metricConfig, reporter));
 				});
-			}
-			catch (Throwable t) {
+			} catch (Throwable t) {
 				LOG.error("Could not instantiate metrics reporter {}. Metrics might not be exposed/reported.", reporterName, t);
 			}
 		}
-		return reporterArguments;
+		return reporterSetups;
 	}
 
-	private static Map<String, MetricReporterFactory> loadReporterFactories() {
-		final ServiceLoader<MetricReporterFactory> serviceLoader = ServiceLoader.load(MetricReporterFactory.class);
+	private static List<Tuple2<String, Configuration>> loadReporterConfigurations(Configuration configuration, Set<String> namedReporters) {
+		final List<Tuple2<String, Configuration>> reporterConfigurations = new ArrayList<>(namedReporters.size());
 
+		for (String namedReporter: namedReporters) {
+			DelegatingConfiguration delegatingConfiguration = new DelegatingConfiguration(
+				configuration,
+				ConfigConstants.METRICS_REPORTER_PREFIX + namedReporter + '.');
+
+			reporterConfigurations.add(Tuple2.of(namedReporter, delegatingConfiguration));
+		}
+		return reporterConfigurations;
+	}
+
+	private static Set<String> findEnabledReportersInConfiguration(Configuration configuration, String includedReportersString) {
+		Set<String> includedReporters = reporterListPattern.splitAsStream(includedReportersString)
+			.filter(r -> !r.isEmpty()) // splitting an empty string results in an empty string on jdk9+
+			.collect(Collectors.toSet());
+
+		// use a TreeSet to make the reporter order deterministic, which is useful for testing
+		Set<String> namedOrderedReporters = new TreeSet<>(String::compareTo);
+
+		// scan entire configuration for keys starting with METRICS_REPORTER_PREFIX and determine the set of enabled reporters
+		for (String key : configuration.keySet()) {
+			if (key.startsWith(ConfigConstants.METRICS_REPORTER_PREFIX)) {
+				Matcher matcher = reporterClassPattern.matcher(key);
+				if (matcher.matches()) {
+					String reporterName = matcher.group(1);
+					if (includedReporters.isEmpty() || includedReporters.contains(reporterName)) {
+						if (namedOrderedReporters.contains(reporterName)) {
+							LOG.warn("Duplicate class configuration detected for reporter {}.", reporterName);
+						} else {
+							namedOrderedReporters.add(reporterName);
+						}
+					} else {
+						LOG.info("Excluding reporter {}, not configured in reporter list ({}).", reporterName, includedReportersString);
+					}
+				}
+			}
+		}
+		return namedOrderedReporters;
+	}
+
+	private static Map<String, MetricReporterFactory> loadAvailableReporterFactories(PluginManager pluginManager) {
 		final Map<String, MetricReporterFactory> reporterFactories = new HashMap<>(2);
-		final Iterator<MetricReporterFactory> factoryIterator = serviceLoader.iterator();
+		final Iterator<MetricReporterFactory> factoryIterator = getAllReporterFactories(pluginManager);
+		LOG.info("Prepare reporter factories (from both SPIs and Plugins):");
 		// do not use streams or for-each loops here because they do not allow catching individual ServiceConfigurationErrors
 		// such an error might be caused if the META-INF/services contains an entry to a non-existing factory class
 		while (factoryIterator.hasNext()) {
 			try {
 				MetricReporterFactory factory = factoryIterator.next();
-				reporterFactories.put(factory.getClass().getName(), factory);
+				String factoryClassName = factory.getClass().getName();
+				MetricReporterFactory existingFactory = reporterFactories.get(factoryClassName);
+				if (existingFactory == null){
+					reporterFactories.put(factoryClassName, factory);
+					LOG.info("Found reporter factory {} at {} ",
+						factoryClassName,
+						new File(factory.getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getCanonicalPath());
+				} else {
+					//TODO: use path information below, when Plugin Classloader stops always prioritizing factories from /lib
+//					String jarPath1 = new File(existingFactory.getClass().getProtectionDomain().getCodeSource().getLocation()
+//						.toURI()).getCanonicalPath();
+//					String jarPath2 = new File(factory.getClass().getProtectionDomain().getCodeSource().getLocation()
+//						.toURI()).getCanonicalPath();
+//					LOG.warn("Multiple implementations of the same reporter were found: \n {} and \n{}", jarPath1, jarPath2);
+					LOG.warn("Multiple implementations of the same reporter were found in 'lib' and/or 'plugins' directories for {}. It is recommended to remove redundant reporter JARs to resolve used versions' ambiguity.", factoryClassName);
+				}
 			} catch (Exception | ServiceConfigurationError e) {
 				LOG.warn("Error while loading reporter factory.", e);
 			}
 		}
 
 		return Collections.unmodifiableMap(reporterFactories);
+	}
+
+	private static Iterator<MetricReporterFactory> getAllReporterFactories(PluginManager pluginManager){
+		final Iterator<MetricReporterFactory> factoryIteratorSPI = ServiceLoader.load(MetricReporterFactory.class).iterator();
+		final Iterator<MetricReporterFactory> factoryIteratorPlugins = pluginManager.load(MetricReporterFactory.class);
+
+		return 	Iterators.concat(factoryIteratorPlugins, factoryIteratorSPI);
 	}
 
 	private static Optional<MetricReporter> loadReporter(
