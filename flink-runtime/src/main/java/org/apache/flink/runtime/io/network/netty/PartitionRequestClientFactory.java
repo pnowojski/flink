@@ -26,8 +26,11 @@ import org.apache.flink.runtime.io.network.netty.exception.RemoteTransportExcept
 import org.apache.flink.runtime.io.network.partition.consumer.RemoteInputChannel;
 
 import org.apache.flink.shaded.netty4.io.netty.channel.Channel;
+import org.apache.flink.shaded.netty4.io.netty.channel.ChannelException;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelFuture;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelFutureListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,13 +43,21 @@ import java.util.concurrent.ConcurrentMap;
  * instances.
  */
 class PartitionRequestClientFactory {
+	private static final Logger LOG = LoggerFactory.getLogger(PartitionRequestClientFactory.class);
 
 	private final NettyClient nettyClient;
+
+	private final int retryNumber;
 
 	private final ConcurrentMap<ConnectionID, Object> clients = new ConcurrentHashMap<ConnectionID, Object>();
 
 	PartitionRequestClientFactory(NettyClient nettyClient) {
+		this(nettyClient, 0);
+	}
+
+	PartitionRequestClientFactory(NettyClient nettyClient, int retryNumber) {
 		this.nettyClient = nettyClient;
+		this.retryNumber = retryNumber;
 	}
 
 	/**
@@ -81,16 +92,10 @@ class PartitionRequestClientFactory {
 				Object old = clients.putIfAbsent(connectionId, connectingChannel);
 
 				if (old == null) {
-					nettyClient.connect(connectionId.getAddress()).addListener(connectingChannel);
-
-					client = connectingChannel.waitForChannel();
-
-					clients.replace(connectionId, connectingChannel, client);
+					client = connectChannelWithRetry(connectingChannel, connectionId, true);
 				}
 				else if (old instanceof ConnectingChannel) {
-					client = ((ConnectingChannel) old).waitForChannel();
-
-					clients.replace(connectionId, old, client);
+					client = connectChannelWithRetry((ConnectingChannel) old, connectionId, false);
 				}
 				else {
 					client = (NettyPartitionRequestClient) old;
@@ -129,6 +134,42 @@ class PartitionRequestClientFactory {
 	 */
 	void destroyPartitionRequestClient(ConnectionID connectionId, PartitionRequestClient client) {
 		clients.remove(connectionId, client);
+	}
+
+	private NettyPartitionRequestClient connectChannelWithRetry(ConnectingChannel connectingChannel,
+										 ConnectionID connectionId, boolean needConnect)
+		throws IOException, InterruptedException {
+		int count = 0;
+		Exception exception = null;
+		do {
+			try {
+				if (needConnect) {
+					LOG.info("Connecting to {} at {} attempt", connectionId.getAddress(), count);
+					nettyClient.connect(connectionId.getAddress()).addListener(connectingChannel);
+				}
+
+				NettyPartitionRequestClient client = connectingChannel.waitForChannel();
+				clients.replace(connectionId, connectingChannel, client);
+				return client;
+			} catch (IOException | ChannelException e) {
+				LOG.error("Failed {} times to connect to {}", count, connectionId.getAddress(), e);
+				ConnectingChannel newConnectingChannel = new ConnectingChannel(connectionId, this);
+				clients.replace(connectionId, connectingChannel, newConnectingChannel);
+				Object old = clients.get(connectionId);
+				if (old instanceof ConnectingChannel) {
+					connectingChannel = (ConnectingChannel) old;
+				}
+
+				exception = e;
+			}
+			count++;
+		} while (count <= retryNumber);
+
+		if (exception != null) {
+			throw new IOException(exception);
+		}
+
+		return (NettyPartitionRequestClient) clients.get(connectionId);
 	}
 
 	private static final class ConnectingChannel implements ChannelFutureListener {
