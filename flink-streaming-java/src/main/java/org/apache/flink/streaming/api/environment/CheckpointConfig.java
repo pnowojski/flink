@@ -56,6 +56,9 @@ public class CheckpointConfig implements java.io.Serializable {
 
 	public static final int UNDEFINED_TOLERABLE_CHECKPOINT_NUMBER = -1;
 
+	public static final boolean DEFAULT_UNALIGNED_CHECKPOINT_ENABLED =
+		Boolean.parseBoolean(System.getProperty(ExecutionCheckpointingOptions.ENABLE_UNALIGNED.key(), "false"));
+
 	// ------------------------------------------------------------------------
 
 	/** Checkpointing mode (exactly-once vs. at-least-once). */
@@ -77,7 +80,7 @@ public class CheckpointConfig implements java.io.Serializable {
 	private boolean forceCheckpointing;
 
 	/** Flag to enable unaligned checkpoints. */
-	private boolean unalignedCheckpointsEnabled;
+	private boolean unalignedCheckpointsEnabled = DEFAULT_UNALIGNED_CHECKPOINT_ENABLED;
 
 	/** Cleanup behaviour for persistent checkpoints. */
 	private ExternalizedCheckpointCleanup externalizedCheckpointCleanup;
@@ -414,9 +417,19 @@ public class CheckpointConfig implements java.io.Serializable {
 	}
 
 	/**
-	 * Returns whether checkpoints should be persisted externally.
+	 * Disables unaligned checkpoints.
 	 *
-	 * @return <code>true</code> if checkpoints should be externalized.
+	 * @see #enableUnalignedCheckpoints()
+	 */
+	@PublicEvolving
+	public void disableUnalignedCheckpoints() {
+		enableUnalignedCheckpoints(true);
+	}
+
+	/**
+	 * Returns whether unaligned checkpoints are enabled.
+	 *
+	 * @return <code>true</code> if unaligned checkpoints are enabled.
 	 */
 	@PublicEvolving
 	public boolean isUnalignedCheckpointsEnabled() {

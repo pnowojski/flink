@@ -505,8 +505,9 @@ public class StreamingJobGraphGenerator {
 
 		config.setStateBackend(streamGraph.getStateBackend());
 		config.setCheckpointingEnabled(checkpointCfg.isCheckpointingEnabled());
-		config.setUnalignedCheckpointsEnabled(checkpointCfg.isUnalignedCheckpointsEnabled());
 		config.setCheckpointMode(getCheckpointingMode(checkpointCfg));
+		config.setUnalignedCheckpointsEnabled(config.getCheckpointMode() == CheckpointingMode.EXACTLY_ONCE &&
+			checkpointCfg.isUnalignedCheckpointsEnabled());
 
 		for (int i = 0; i < vertex.getStatePartitioners().length; i++) {
 			config.setStatePartitioner(i, vertex.getStatePartitioners()[i]);
@@ -953,6 +954,7 @@ public class StreamingJobGraphGenerator {
 
 		//  --- done, put it all together ---
 
+		boolean exactlyOnce = getCheckpointingMode(cfg) == CheckpointingMode.EXACTLY_ONCE;
 		JobCheckpointingSettings settings = new JobCheckpointingSettings(
 			triggerVertices,
 			ackVertices,
@@ -963,10 +965,10 @@ public class StreamingJobGraphGenerator {
 				.setMinPauseBetweenCheckpoints(cfg.getMinPauseBetweenCheckpoints())
 				.setMaxConcurrentCheckpoints(cfg.getMaxConcurrentCheckpoints())
 				.setCheckpointRetentionPolicy(retentionAfterTermination)
-				.setExactlyOnce(getCheckpointingMode(cfg) == CheckpointingMode.EXACTLY_ONCE)
+				.setExactlyOnce(exactlyOnce)
 				.setPreferCheckpointForRecovery(cfg.isPreferCheckpointForRecovery())
 				.setTolerableCheckpointFailureNumber(cfg.getTolerableCheckpointFailureNumber())
-				.setUnalignedCheckpointsEnabled(cfg.isUnalignedCheckpointsEnabled())
+				.setUnalignedCheckpointsEnabled(exactlyOnce && cfg.isUnalignedCheckpointsEnabled())
 				.build(),
 			serializedStateBackend,
 			serializedHooks);

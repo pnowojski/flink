@@ -137,6 +137,10 @@ public class InputProcessorUtil {
 					inputGateToChannelIndexOffset,
 					toNotifyOnCheckpoint);
 			case AT_LEAST_ONCE:
+				if (config.isUnalignedCheckpointsEnabled()) {
+					throw new IllegalStateException("Cannot use unaligned checkpoints with AT_LEAST_ONCE " +
+						"checkpointing mode");
+				}
 				return new CheckpointBarrierTracker(numberOfInputChannelsPerGate.sum(), toNotifyOnCheckpoint);
 			default:
 				throw new UnsupportedOperationException("Unrecognized Checkpointing Mode: " + config.getCheckpointMode());
