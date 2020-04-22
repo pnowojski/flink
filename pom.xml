@@ -1553,6 +1553,7 @@ under the License.
 						<jobmanager.scheduler>${test.scheduler.type}</jobmanager.scheduler>
 						<hadoop.version>${hadoop.version}</hadoop.version>
 						<execution.checkpointing.unaligned>true</execution.checkpointing.unaligned>
+						<testFailureIgnore>true</testFailureIgnore>
 					</systemPropertyVariables>
 					<argLine>-Xms256m -Xmx2048m -Dmvn.forkNumber=${surefire.forkNumber} -XX:+UseG1GC</argLine>
 				</configuration>

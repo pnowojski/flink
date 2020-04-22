@@ -104,7 +104,7 @@ function post_test_validation {
             echo "Published e2e logs into debug logs artifact:"
             ls ${ARTIFACTS_DIR}/e2e-flink-logs/
         fi
-        exit "${exit_code}"
+        cleanup
     fi
 }
 
