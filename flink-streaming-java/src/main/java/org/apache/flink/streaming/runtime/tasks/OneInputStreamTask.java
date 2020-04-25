@@ -107,6 +107,7 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
 		return InputProcessorUtil.createCheckpointedInputGate(
 			this,
 			configuration,
+			getEnvironment().getTaskStateManager().getChannelStateReader(),
 			getChannelStateWriter(),
 			inputGate,
 			getEnvironment().getMetricGroup().getIOMetricGroup(),

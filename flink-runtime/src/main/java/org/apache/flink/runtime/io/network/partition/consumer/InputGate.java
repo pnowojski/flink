@@ -74,6 +74,8 @@ public abstract class InputGate implements PullingAsyncDataInput<BufferOrEvent>,
 
 	protected final AvailabilityHelper availabilityHelper = new AvailabilityHelper();
 
+	protected boolean requestedPartitionsFlag;
+
 	public abstract int getNumberOfInputChannels();
 
 	public abstract boolean isFinished();
@@ -134,6 +136,12 @@ public abstract class InputGate implements PullingAsyncDataInput<BufferOrEvent>,
 	 * Setup gate, potentially heavy-weight, blocking operation comparing to just creation.
 	 */
 	public abstract void setup() throws IOException, InterruptedException;
+
+	public abstract void requestPartitions() throws IOException, InterruptedException;
+
+	public boolean hasRequestedPartitions() {
+		return requestedPartitionsFlag;
+	}
 
 	public abstract void registerBufferReceivedListener(BufferReceivedListener listener);
 }

@@ -52,6 +52,8 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 
 	private final CheckpointBarrierHandler barrierHandler;
 
+	private final BufferStateReader bufferStateReader;
+
 	/** The gate that the buffer draws its input from. */
 	private final InputGate inputGate;
 
@@ -66,6 +68,7 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 			AbstractInvokable toNotifyOnCheckpoint) {
 		this(
 			inputGate,
+			new EmptyBufferStateReader(),
 			new CheckpointBarrierAligner(
 				taskName,
 				InputProcessorUtil.generateChannelIndexToInputGateMap(inputGate),
@@ -76,8 +79,9 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 
 	public CheckpointedInputGate(
 			InputGate inputGate,
+			BufferStateReader bufferStateReader,
 			CheckpointBarrierHandler barrierHandler) {
-		this(inputGate, barrierHandler, 0);
+		this(inputGate, bufferStateReader, barrierHandler, 0);
 	}
 
 	/**
@@ -94,20 +98,32 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 	 */
 	public CheckpointedInputGate(
 			InputGate inputGate,
+			BufferStateReader bufferStateReader,
 			CheckpointBarrierHandler barrierHandler,
 			int channelIndexOffset) {
 		this.inputGate = inputGate;
+		this.bufferStateReader = bufferStateReader;
 		this.channelIndexOffset = channelIndexOffset;
 		this.barrierHandler = barrierHandler;
 	}
 
 	@Override
 	public CompletableFuture<?> getAvailableFuture() {
+		if (!bufferStateReader.isFinished()) {
+			return bufferStateReader.getAvailableFuture();
+		}
 		return inputGate.getAvailableFuture();
 	}
 
 	@Override
 	public Optional<BufferOrEvent> pollNext() throws Exception {
+		if (!bufferStateReader.isFinished()) {
+			return bufferStateReader.pollNext();
+		}
+		else if (!inputGate.hasRequestedPartitions()) {
+			inputGate.requestPartitions();
+		}
+
 		while (true) {
 			Optional<BufferOrEvent> next = inputGate.pollNext();
 

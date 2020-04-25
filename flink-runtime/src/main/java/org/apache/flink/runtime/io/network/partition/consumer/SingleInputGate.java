@@ -164,9 +164,6 @@ public class SingleInputGate extends IndexedInputGate {
 
 	private boolean hasReceivedAllEndOfPartitionEvents;
 
-	/** Flag indicating whether partitions have been requested. */
-	private boolean requestedPartitionsFlag;
-
 	private final List<TaskEvent> pendingEvents = new ArrayList<>();
 
 	private int numberOfUninitializedChannels;
@@ -234,7 +231,7 @@ public class SingleInputGate extends IndexedInputGate {
 	}
 
 	@VisibleForTesting
-	void requestPartitions() throws IOException, InterruptedException {
+	public void requestPartitions() throws IOException, InterruptedException {
 		synchronized (requestLock) {
 			if (!requestedPartitionsFlag) {
 				if (closeFuture.isDone()) {
