@@ -128,6 +128,7 @@ public class PipelinedSubpartition extends ResultSubpartition {
 	public boolean add(BufferConsumer bufferConsumer, boolean isPriorityEvent) throws IOException {
 		if (isPriorityEvent) {
 			if (readView != null && readView.notifyPriorityEvent(bufferConsumer)) {
+				snapshotBuffers();
 				bufferConsumer.close();
 				return true;
 			}
@@ -174,16 +175,20 @@ public class PipelinedSubpartition extends ResultSubpartition {
 			checkState(inflightBufferSnapshot.isEmpty(), "Supporting only one concurrent checkpoint in unaligned " +
 				"checkpoints");
 
-			// Meanwhile prepare the collection of in-flight buffers which would be fetched in the next step later.
-			for (BufferConsumer buffer : buffers) {
-				try (BufferConsumer bc = buffer.copy()) {
-					inflightBufferSnapshot.add(bc.build());
-				}
-			}
+			snapshotBuffers();
 
 			buffers.addFirst(bufferConsumer);
 		} else {
 			buffers.add(bufferConsumer);
+		}
+	}
+
+	private void snapshotBuffers() {
+		// Meanwhile prepare the collection of in-flight buffers which would be fetched in the next step later.
+		for (BufferConsumer buffer : buffers) {
+			try (BufferConsumer bc = buffer.copy()) {
+				inflightBufferSnapshot.add(bc.build());
+			}
 		}
 	}
 
