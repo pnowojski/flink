@@ -598,12 +598,12 @@ public class SpillingAdaptiveSpanningRecordDeserializer<T extends IOReadableWrit
 				throw new UnsupportedOperationException("Unaligned checkpoint currently do not support spilled " +
 					"records.");
 			} else if (recordLength != -1) {
-				int leftOverSize = leftOverLimit - leftOverStart;
+				int leftOverSize = leftOverData != null ? leftOverLimit - leftOverStart : 0;
 				int unconsumedSize = Integer.BYTES + accumulatedRecordBytes + leftOverSize;
 				DataOutputSerializer serializer = new DataOutputSerializer(unconsumedSize);
 				serializer.writeInt(recordLength);
 				serializer.write(buffer, 0, accumulatedRecordBytes);
-				if (leftOverData != null) {
+				if (leftOverSize > 0) {
 					serializer.write(leftOverData, leftOverStart, leftOverSize);
 				}
 				MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(unconsumedSize);
