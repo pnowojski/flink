@@ -268,6 +268,18 @@ public class UnionInputGate extends InputGate {
 	}
 
 	@Override
+	public void requestPartitions() throws IOException, InterruptedException {
+		for (InputGate inputGate : inputGates) {
+			inputGate.requestPartitions();
+		}
+	}
+
+	@Override
+	public boolean hasRequestedPartitions() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public void close() throws IOException {
 	}
 
