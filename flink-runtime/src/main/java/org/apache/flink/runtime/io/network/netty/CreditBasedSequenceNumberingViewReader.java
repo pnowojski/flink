@@ -38,7 +38,6 @@ import java.io.IOException;
  * handler about non-emptiness, similar to the {@link LocalInputChannel}.
  */
 class CreditBasedSequenceNumberingViewReader implements BufferAvailabilityListener, NetworkSequenceViewReader {
-
 	private final Object requestLock = new Object();
 
 	private final InputChannelID receiverId;

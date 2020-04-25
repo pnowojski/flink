@@ -24,7 +24,11 @@ import org.apache.flink.runtime.checkpoint.channel.ChannelStateReader.ReadResult
 import org.apache.flink.runtime.event.TaskEvent;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.metrics.InputChannelMetrics;
+import org.apache.flink.runtime.io.network.partition.BufferReaderWriterUtil;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -37,6 +41,7 @@ import java.util.Optional;
  * via {@link ChannelStateReader}.
  */
 public abstract class RecoveredInputChannel extends InputChannel {
+	private static final Logger LOG = LoggerFactory.getLogger(RecoveredInputChannel.class);
 
 	final ArrayDeque<Buffer> receivedBuffers = new ArrayDeque<>();
 	final BufferManager bufferManager;
@@ -68,6 +73,7 @@ public abstract class RecoveredInputChannel extends InputChannel {
 		ReadResult result;
 		try {
 			result = reader.readInputData(channelInfo, buffer);
+			LOG.info("{}/{} Recovered {}", inputGate.getOwningTaskName(), channelInfo, BufferReaderWriterUtil.getSample(buffer));
 		} catch (Throwable t) {
 			buffer.recycleBuffer();
 			throw t;

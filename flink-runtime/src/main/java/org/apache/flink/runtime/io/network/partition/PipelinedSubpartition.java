@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
@@ -112,6 +113,11 @@ public class PipelinedSubpartition extends ResultSubpartition {
 
 				// check whether there are some states data filled in this time
 				if (bufferConsumer.isDataAvailable()) {
+					try (BufferConsumer copy = bufferConsumer.copy()) {
+						Buffer buffer = copy.build();
+						LOG.info("{} recovered {}", subpartitionInfo, BufferReaderWriterUtil.getSample(buffer));
+						buffer.recycleBuffer();
+					}
 					add(bufferConsumer, false, false);
 					recycleBuffer = false;
 					bufferBuilder.finish();
@@ -198,6 +204,7 @@ public class PipelinedSubpartition extends ResultSubpartition {
 	public List<Buffer> requestInflightBufferSnapshot() {
 		List<Buffer> snapshot = new ArrayList<>(inflightBufferSnapshot);
 		inflightBufferSnapshot.clear();
+		LOG.info("{} snapshotting {}", subpartitionInfo, snapshot.stream().map(BufferReaderWriterUtil::getSample).collect(Collectors.toList()));
 		return snapshot;
 	}
 

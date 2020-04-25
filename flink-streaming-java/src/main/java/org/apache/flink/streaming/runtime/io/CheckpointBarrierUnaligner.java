@@ -28,6 +28,7 @@ import org.apache.flink.runtime.io.network.api.CancelCheckpointMarker;
 import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferReceivedListener;
+import org.apache.flink.runtime.io.network.partition.BufferReaderWriterUtil;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 
 import org.slf4j.Logger;
@@ -162,6 +163,7 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 			hasInflightBuffers[channelIndex] = false;
 			numBarrierConsumed++;
 		}
+		LOG.info("{}: Process barrier from channel {} @ {}.", taskName, channelIndex, barrierId);
 		// processBarrier is called from task thread and can actually happen before notifyBarrierReceived on empty
 		// buffer queues
 		// to avoid replicating any logic, we simply call notifyBarrierReceived here as well
@@ -308,9 +310,9 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 
 			int channelIndex = handler.getFlattenedChannelIndex(channelInfo);
 			if (barrierId == currentReceivedCheckpointId && storeNewBuffers[channelIndex]) {
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("{}: Received barrier from channel {} @ {}.", handler.taskName, channelIndex, barrierId);
-				}
+//				if (LOG.isDebugEnabled()) {
+					LOG.info("{}: Received barrier from channel {} @ {}.", handler.taskName, channelIndex, barrierId);
+//				}
 
 				storeNewBuffers[channelIndex] = false;
 
@@ -323,6 +325,7 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		@Override
 		public synchronized void notifyBufferReceived(Buffer buffer, InputChannelInfo channelInfo) {
 			if (storeNewBuffers[handler.getFlattenedChannelIndex(channelInfo)]) {
+				LOG.info("{}/{} snapshotting {}", handler.taskName, channelInfo, BufferReaderWriterUtil.getSample(buffer));
 				channelStateWriter.addInputData(
 					currentReceivedCheckpointId,
 					channelInfo,

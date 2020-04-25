@@ -25,6 +25,9 @@ import org.apache.flink.runtime.io.network.buffer.BufferRecycler;
 import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
 import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
 
+import org.apache.flink.shaded.guava18.com.google.common.hash.HashCode;
+import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
+
 import javax.annotation.Nullable;
 
 import java.io.IOException;
@@ -40,7 +43,7 @@ import java.nio.channels.FileChannel;
  * <p>The encoding is the same across FileChannel and ByteBuffer, so this class can
  * write to a file and read from the byte buffer that results from mapping this file to memory.
  */
-final class BufferReaderWriterUtil {
+public final class BufferReaderWriterUtil {
 
 	static final int HEADER_LENGTH = 8;
 
@@ -94,6 +97,21 @@ final class BufferReaderWriterUtil {
 
 		Buffer.DataType dataType = isEvent ? Buffer.DataType.EVENT_BUFFER : Buffer.DataType.DATA_BUFFER;
 		return new NetworkBuffer(memorySegment, FreeingBufferRecycler.INSTANCE, dataType, isCompressed, size);
+	}
+
+	public static String getSample(Buffer buffer) {
+		ByteBuf byteBuf = buffer.readOnlySlice().asByteBuf();
+		if (buffer.getSize() < 100) {
+			byte[] bytes = new byte[buffer.getSize()];
+			byteBuf.readBytes(bytes);
+			return String.format("buffer size=%s: %s", buffer.getSize(), bytes.length == 0 ? "" : HashCode.fromBytes(bytes));
+		}
+		byte[] head = new byte[50];
+		byteBuf.readBytes(head);
+		byteBuf.skipBytes(buffer.getSize() - 100);
+		byte[] tail = new byte[50];
+		byteBuf.readBytes(tail);
+		return String.format("buffer size=%s: %s..%s", buffer.getSize(), HashCode.fromBytes(head), HashCode.fromBytes(tail));
 	}
 
 	// ------------------------------------------------------------------------

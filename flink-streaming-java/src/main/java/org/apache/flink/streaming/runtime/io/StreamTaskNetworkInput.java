@@ -29,6 +29,7 @@ import org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer;
 import org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult;
 import org.apache.flink.runtime.io.network.api.serialization.SpillingAdaptiveSpanningRecordDeserializer;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
+import org.apache.flink.runtime.io.network.partition.BufferReaderWriterUtil;
 import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannel;
 import org.apache.flink.runtime.plugable.DeserializationDelegate;
@@ -38,6 +39,9 @@ import org.apache.flink.streaming.runtime.streamrecord.StreamElement;
 import org.apache.flink.streaming.runtime.streamrecord.StreamElementSerializer;
 import org.apache.flink.streaming.runtime.streamstatus.StatusWatermarkValve;
 import org.apache.flink.streaming.runtime.streamstatus.StreamStatus;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -60,6 +64,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  */
 @Internal
 public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
+	private static final Logger LOG = LoggerFactory.getLogger(StreamTaskNetworkInput.class);
 
 	private final CheckpointedInputGate checkpointedInputGate;
 
@@ -204,12 +209,15 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
 			final InputChannel channel = checkpointedInputGate.getChannel(channelIndex);
 
 			// Assumption for retrieving buffers = one concurrent checkpoint
-			recordDeserializers[channelIndex].getUnconsumedBuffer().ifPresent(buffer ->
+			recordDeserializers[channelIndex].getUnconsumedBuffer().ifPresent(buffer -> {
+				LOG.info("{} snapshotting getUnconsumedBuffer {}", channel.getChannelInfo(), BufferReaderWriterUtil.getSample(buffer));
+
 				channelStateWriter.addInputData(
 					checkpointId,
 					channel.getChannelInfo(),
 					ChannelStateWriter.SEQUENCE_NUMBER_UNKNOWN,
-					buffer));
+					buffer);
+			});
 
 			channelStateWriter.addInputData(
 				checkpointId,

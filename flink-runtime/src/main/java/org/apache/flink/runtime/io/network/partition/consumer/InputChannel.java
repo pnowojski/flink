@@ -118,6 +118,10 @@ public abstract class InputChannel {
 		return channelInfo.getInputChannelIdx();
 	}
 
+	public SingleInputGate getInputGate() {
+		return inputGate;
+	}
+
 	/**
 	 * Returns the info of this channel, which uniquely identifies the channel in respect to its operator instance.
 	 */

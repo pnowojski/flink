@@ -228,6 +228,10 @@ public class SingleInputGate extends IndexedInputGate {
 		this.closeFuture = new CompletableFuture<>();
 	}
 
+	public String getOwningTaskName() {
+		return owningTaskName;
+	}
+
 	@Override
 	public void setup() throws IOException {
 		checkState(this.bufferPool == null, "Bug in input gate setup logic: Already registered buffer pool.");

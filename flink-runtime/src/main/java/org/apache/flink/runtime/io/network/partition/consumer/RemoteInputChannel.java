@@ -28,8 +28,12 @@ import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
 import org.apache.flink.runtime.io.network.buffer.BufferReceivedListener;
 import org.apache.flink.runtime.io.network.metrics.InputChannelMetrics;
+import org.apache.flink.runtime.io.network.partition.BufferReaderWriterUtil;
 import org.apache.flink.runtime.io.network.partition.PartitionNotFoundException;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -41,6 +45,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
@@ -49,6 +54,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  * An input channel, which requests a remote partition queue.
  */
 public class RemoteInputChannel extends InputChannel {
+	private static final Logger LOG = LoggerFactory.getLogger(RemoteInputChannel.class);
 
 	/** ID to distinguish this channel from other channels sharing the same TCP connection. */
 	private final InputChannelID id = new InputChannelID();
@@ -199,6 +205,7 @@ public class RemoteInputChannel extends InputChannel {
 
 			lastRequestedCheckpointId = checkpointId;
 
+			LOG.info("{} snapshotting {}", channelInfo, inflightBuffers.stream().map(BufferReaderWriterUtil::getSample).collect(Collectors.toList()));
 			return inflightBuffers;
 		}
 	}
@@ -421,6 +428,7 @@ public class RemoteInputChannel extends InputChannel {
 			final CheckpointBarrier notifyReceivedBarrier;
 			final Buffer notifyReceivedBuffer;
 			final BufferReceivedListener listener = inputGate.getBufferReceivedListener();
+			LOG.info("{} {} received buffer {}", inputGate.getOwningTaskName(), channelInfo, BufferReaderWriterUtil.getSample(buffer));
 			synchronized (receivedBuffers) {
 				// Similar to notifyBufferAvailable(), make sure that we never add a buffer
 				// after releaseAllResources() released all buffers from receivedBuffers
