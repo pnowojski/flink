@@ -127,11 +127,11 @@ public class PipelinedSubpartition extends ResultSubpartition {
 	@Override
 	public boolean add(BufferConsumer bufferConsumer, boolean isPriorityEvent) throws IOException {
 		if (isPriorityEvent) {
-			if (readView != null && readView.notifyPriorityEvent(bufferConsumer)) {
-				snapshotBuffers();
-				bufferConsumer.close();
-				return true;
-			}
+//			if (readView != null && readView.notifyPriorityEvent(bufferConsumer)) {
+//				snapshotBuffers();
+//				bufferConsumer.close();
+//				return true;
+//			}
 			return add(bufferConsumer, false, true);
 		}
 		return add(bufferConsumer, false, false);
