@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -64,6 +65,12 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 	private volatile ResultSubpartitionView subpartitionView;
 
 	private volatile boolean isReleased;
+
+	/** The latest already triggered checkpoint id which would be updated during {@link #requestInflightBuffers(long)}.*/
+	private long lastRequestedCheckpointId = -1;
+
+	/** The current received checkpoint id from the network. */
+	private long receivedCheckpointId = -1;
 
 	public LocalInputChannel(
 		SingleInputGate inputGate,
@@ -165,6 +172,12 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 	}
 
 	@Override
+	public List<Buffer> requestInflightBuffers(long checkpointId) throws IOException {
+		this.lastRequestedCheckpointId = checkpointId;
+		return super.requestInflightBuffers(checkpointId);
+	}
+
+	@Override
 	Optional<BufferAndAvailability> getNextBuffer() throws IOException, InterruptedException {
 		checkError();
 
@@ -196,9 +209,16 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 			}
 		}
 
-		numBytesIn.inc(next.buffer().getSize());
-		numBuffersIn.inc();
-		return Optional.of(new BufferAndAvailability(next.buffer(), next.isDataAvailable(), next.buffersInBacklog()));
+		Buffer buffer = next.buffer();
+		CheckpointBarrier notifyReceivedBarrier = parseCheckpointBarrierOrNull(buffer);
+		if (notifyReceivedBarrier != null) {
+			receivedCheckpointId = notifyReceivedBarrier.getId();
+		} else if (receivedCheckpointId < lastRequestedCheckpointId) {
+			inputGate.getBufferReceivedListener().notifyBufferReceived(buffer.retainBuffer(), channelInfo);
+		}
+
+		updateMetrics(buffer);
+		return Optional.of(new BufferAndAvailability(buffer, next.isDataAvailable(), next.buffersInBacklog()));
 	}
 
 	@Override
