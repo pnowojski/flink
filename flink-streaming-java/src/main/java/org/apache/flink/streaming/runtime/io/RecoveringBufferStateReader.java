@@ -19,18 +19,17 @@
 package org.apache.flink.streaming.runtime.io;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateReader;
 import org.apache.flink.runtime.checkpoint.channel.InputChannelInfo;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
-import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
-import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
+import org.apache.flink.runtime.io.network.buffer.BufferPool;
 import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
 
 import javax.annotation.Nullable;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Optional;
@@ -45,18 +44,22 @@ import java.util.concurrent.Executors;
 public class RecoveringBufferStateReader extends BufferStateReader {
 	private final AvailabilityHelper availabilityHelper = new AvailabilityHelper();
 	private final ExecutorService unspillingExecutor = Executors.newSingleThreadExecutor(new ExecutorThreadFactory("channel-state-unspilling"));
-	private final ChannelStateReader channelStateReader;
 	private final ArrayDeque<BufferOrEvent> recoveredBuffers = new ArrayDeque<>();
 	private final int recoveredBuffersLimit = 10;
+
+	private final BufferPool bufferPool;
+	private final ChannelStateReader channelStateReader;
 
 	private @Nullable Exception asyncException = null;
 	private boolean unspillingFinished = false;
 	private boolean running = true;
 
 	public RecoveringBufferStateReader(
+			BufferPool bufferPool,
 			Map<InputGate, Integer> inputGateToChannelIndexOffset,
 			ChannelStateReader channelStateReader) {
 		super(false);
+		this.bufferPool = bufferPool;
 		this.channelStateReader = channelStateReader;
 
 		startUnspilling(inputGateToChannelIndexOffset);
@@ -75,10 +78,14 @@ public class RecoveringBufferStateReader extends BufferStateReader {
 					InputChannelInfo info = inputGate.getChannel(channelIndex).getChannelInfo();
 					ChannelStateReader.ReadResult result;
 					do {
-						// TODO: what should be the buffer size?
-						// TODO: pool memory segments from NetworkBufferPool?
-						Buffer buffer = new NetworkBuffer(MemorySegmentFactory.allocateUnpooledSegment(32 * 1024), FreeingBufferRecycler.INSTANCE);
-						result = channelStateReader.readInputData(info, buffer);
+						Buffer buffer = bufferPool.requestBuffer();
+						try {
+							result = channelStateReader.readInputData(info, buffer);
+						}
+						catch (IOException ex) {
+							buffer.recycleBuffer();
+							throw ex;
+						}
 						enqueueBuffer(buffer, channelIndexOffset + channelIndex);
 						if (!running) {
 							return;

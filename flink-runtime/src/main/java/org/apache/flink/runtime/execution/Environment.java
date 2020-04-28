@@ -38,6 +38,7 @@ import org.apache.flink.runtime.jobgraph.tasks.TaskOperatorEventGateway;
 import org.apache.flink.runtime.memory.MemoryManager;
 import org.apache.flink.runtime.metrics.groups.TaskMetricGroup;
 import org.apache.flink.runtime.query.TaskKvStateRegistry;
+import org.apache.flink.runtime.shuffle.ShuffleEnvironment;
 import org.apache.flink.runtime.state.TaskStateManager;
 import org.apache.flink.runtime.state.internal.InternalKvState;
 import org.apache.flink.runtime.taskexecutor.GlobalAggregateManager;
@@ -222,6 +223,10 @@ public interface Environment {
 	IndexedInputGate getInputGate(int index);
 
 	IndexedInputGate[] getAllInputGates();
+
+	default ShuffleEnvironment<?, ?> getShuffleEnvironment() {
+		throw new UnsupportedOperationException();
+	}
 
 	TaskEventDispatcher getTaskEventDispatcher();
 }

@@ -27,6 +27,7 @@ import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.PartitionInfo;
 import org.apache.flink.runtime.io.disk.FileChannelManager;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
+import org.apache.flink.runtime.io.network.buffer.BufferPool;
 import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool;
 import org.apache.flink.runtime.io.network.metrics.InputChannelMetrics;
 import org.apache.flink.runtime.io.network.metrics.NettyShuffleMetricFactory;
@@ -271,6 +272,11 @@ public class NettyShuffleEnvironment implements ShuffleEnvironment<ResultPartiti
 			shuffleDescriptor.getClass().getName());
 		inputGate.updateInputChannel(taskExecutorResourceId, (NettyShuffleDescriptor) shuffleDescriptor);
 		return true;
+	}
+
+	@Override
+	public BufferPool createBufferPool(int numRequiredBuffers, int maxUsedBuffers) throws IOException {
+		return networkBufferPool.createBufferPool(numRequiredBuffers, maxUsedBuffers);
 	}
 
 	/*

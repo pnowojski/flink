@@ -188,6 +188,8 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 	/** The I/O manager to be used by this task. */
 	private final IOManager ioManager;
 
+	private final ShuffleEnvironment<?, ?> shuffleEnvironment;
+
 	/** The BroadcastVariableManager to be used by this task. */
 	private final BroadcastVariableManager broadcastVariableManager;
 
@@ -345,6 +347,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
 		this.memoryManager = Preconditions.checkNotNull(memManager);
 		this.ioManager = Preconditions.checkNotNull(ioManager);
+		this.shuffleEnvironment = Preconditions.checkNotNull(shuffleEnvironment);
 		this.broadcastVariableManager = Preconditions.checkNotNull(bcVarManager);
 		this.taskEventDispatcher = Preconditions.checkNotNull(taskEventDispatcher);
 		this.taskStateManager = Preconditions.checkNotNull(taskStateManager);
@@ -682,6 +685,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 				distributedCacheEntries,
 				consumableNotifyingPartitionWriters,
 				inputGates,
+				shuffleEnvironment,
 				taskEventDispatcher,
 				checkpointResponder,
 				operatorCoordinatorEventGateway,

@@ -39,6 +39,7 @@ import org.apache.flink.runtime.jobgraph.tasks.TaskOperatorEventGateway;
 import org.apache.flink.runtime.memory.MemoryManager;
 import org.apache.flink.runtime.metrics.groups.TaskMetricGroup;
 import org.apache.flink.runtime.query.TaskKvStateRegistry;
+import org.apache.flink.runtime.shuffle.ShuffleEnvironment;
 import org.apache.flink.runtime.state.TaskStateManager;
 import org.apache.flink.runtime.taskexecutor.GlobalAggregateManager;
 
@@ -75,6 +76,7 @@ public class RuntimeEnvironment implements Environment {
 
 	private final ResultPartitionWriter[] writers;
 	private final IndexedInputGate[] inputGates;
+	private final ShuffleEnvironment<?, ?> shuffleEnvironment;
 
 	private final TaskEventDispatcher taskEventDispatcher;
 
@@ -112,6 +114,7 @@ public class RuntimeEnvironment implements Environment {
 			Map<String, Future<Path>> distCacheEntries,
 			ResultPartitionWriter[] writers,
 			IndexedInputGate[] inputGates,
+			ShuffleEnvironment<?, ?> shuffleEnvironment,
 			TaskEventDispatcher taskEventDispatcher,
 			CheckpointResponder checkpointResponder,
 			TaskOperatorEventGateway operatorEventGateway,
@@ -138,6 +141,7 @@ public class RuntimeEnvironment implements Environment {
 		this.distCacheEntries = checkNotNull(distCacheEntries);
 		this.writers = checkNotNull(writers);
 		this.inputGates = checkNotNull(inputGates);
+		this.shuffleEnvironment = checkNotNull(shuffleEnvironment);
 		this.taskEventDispatcher = checkNotNull(taskEventDispatcher);
 		this.checkpointResponder = checkNotNull(checkpointResponder);
 		this.operatorEventGateway = checkNotNull(operatorEventGateway);
@@ -261,6 +265,11 @@ public class RuntimeEnvironment implements Environment {
 	@Override
 	public IndexedInputGate[] getAllInputGates() {
 		return inputGates;
+	}
+
+	@Override
+	public ShuffleEnvironment<?, ?> getShuffleEnvironment() {
+		return shuffleEnvironment;
 	}
 
 	@Override

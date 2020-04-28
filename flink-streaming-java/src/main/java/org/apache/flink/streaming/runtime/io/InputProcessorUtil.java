@@ -21,11 +21,11 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateReader;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateWriter;
 import org.apache.flink.runtime.checkpoint.channel.InputChannelInfo;
+import org.apache.flink.runtime.io.network.buffer.BufferPool;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.metrics.MetricNames;
 import org.apache.flink.runtime.metrics.groups.TaskIOMetricGroup;
-import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.streaming.api.graph.StreamConfig;
 
 import java.util.ArrayList;
@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 /**
@@ -46,6 +45,7 @@ public class InputProcessorUtil {
 	public static CheckpointedInputGate createCheckpointedInputGate(
 		AbstractInvokable toNotifyOnCheckpoint,
 		StreamConfig config,
+		BufferPool bufferPool,
 		ChannelStateReader channelStateReader,
 		ChannelStateWriter channelStateWriter,
 		InputGate inputGate,
@@ -73,7 +73,7 @@ public class InputProcessorUtil {
 
 		return new CheckpointedInputGate(
 			inputGate,
-			createBufferStateReader(inputGateToChannelIndexOffset, channelStateReader),
+			createBufferStateReader(bufferPool, inputGateToChannelIndexOffset, channelStateReader),
 			barrierHandler);
 	}
 
@@ -84,6 +84,7 @@ public class InputProcessorUtil {
 	public static CheckpointedInputGate[] createCheckpointedInputGatePair(
 			AbstractInvokable toNotifyOnCheckpoint,
 			StreamConfig config,
+			BufferPool bufferPool,
 			ChannelStateReader channelStateReader,
 			ChannelStateWriter channelStateWriter,
 			TaskIOMetricGroup taskIOMetricGroup,
@@ -112,7 +113,7 @@ public class InputProcessorUtil {
 		for (int i = 0; i < inputGates.length; i++) {
 			checkpointedInputGates[i] = new CheckpointedInputGate(
 				inputGates[i],
-				createBufferStateReader(inputGateToChannelIndexOffset, channelStateReader),
+				createBufferStateReader(bufferPool, inputGateToChannelIndexOffset, channelStateReader),
 				barrierHandler,
 				inputGateToChannelIndexOffset.get(inputGates[i]));
 		}
@@ -121,9 +122,11 @@ public class InputProcessorUtil {
 	}
 
 	private static BufferStateReader createBufferStateReader(
-		Map<InputGate, Integer> inputGateToChannelIndexOffset,
-		ChannelStateReader channelStateReader) {
+			BufferPool bufferPool,
+			Map<InputGate, Integer> inputGateToChannelIndexOffset,
+			ChannelStateReader channelStateReader) {
 		return new RecoveringBufferStateReader(
+			bufferPool,
 			inputGateToChannelIndexOffset,
 			channelStateReader);
 	}
