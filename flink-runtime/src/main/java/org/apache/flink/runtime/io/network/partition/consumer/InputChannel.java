@@ -156,6 +156,9 @@ public abstract class InputChannel {
 		return Collections.emptyList();
 	}
 
+	protected void notifyBufferAvailable(int numAvailableBuffers) {
+	}
+
 	// ------------------------------------------------------------------------
 	// Consume
 	// ------------------------------------------------------------------------
