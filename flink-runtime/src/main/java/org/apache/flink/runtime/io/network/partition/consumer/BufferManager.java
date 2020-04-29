@@ -65,14 +65,10 @@ public class BufferManager implements BufferListener, BufferRecycler {
 	@GuardedBy("bufferQueue")
 	private int numRequiredBuffers;
 
-	public BufferManager(
-		MemorySegmentProvider globalPool,
-		InputChannel inputChannel,
-		int numRequiredBuffers) {
-
-		this.globalPool = checkNotNull(globalPool);
-		this.inputChannel = checkNotNull(inputChannel);
+	public BufferManager(InputChannel inputChannel, int numRequiredBuffers) {
 		checkArgument(numRequiredBuffers >= 0);
+		this.inputChannel = checkNotNull(inputChannel);
+		this.globalPool = inputChannel.inputGate.getMemorySegmentProvider();
 		this.numRequiredBuffers = numRequiredBuffers;
 	}
 
