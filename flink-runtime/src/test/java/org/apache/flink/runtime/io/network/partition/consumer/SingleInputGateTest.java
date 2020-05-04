@@ -483,6 +483,8 @@ public class SingleInputGateTest extends InputGateTestBase {
 				SingleInputGateBuilder.NO_OP_PRODUCER_CHECKER,
 				InputChannelTestUtils.newUnregisteredInputChannelMetrics());
 
+		gate.convertRecoveredInputChannels();
+
 		try {
 			assertEquals(gateDesc.getConsumedPartitionType(), gate.getConsumedPartitionType());
 
@@ -742,7 +744,7 @@ public class SingleInputGateTest extends InputGateTestBase {
 				notifications.add(new BufferOrEvent(barrier, channelInfo.getInputChannelIdx()));
 			}
 		});
-		inputGate.setup();
+		setupInputGate(inputGate, remoteInputChannel1, remoteInputChannel2);
 
 		// Test
 		CheckpointOptions options = new CheckpointOptions(
