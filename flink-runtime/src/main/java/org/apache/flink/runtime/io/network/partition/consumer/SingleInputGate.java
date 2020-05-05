@@ -255,7 +255,6 @@ public class SingleInputGate extends IndexedInputGate {
 					return;
 				}
 			}
-			convertRecoveredInputChannels();
 		});
 	}
 
@@ -280,8 +279,6 @@ public class SingleInputGate extends IndexedInputGate {
 				if (executor != null) {
 					executor.submit(this :: internalRequestPartitions);
 				} else {
-					// without executor readRecoveredState was not called before
-					convertRecoveredInputChannels();
 					internalRequestPartitions();
 				}
 			}
@@ -297,25 +294,6 @@ public class SingleInputGate extends IndexedInputGate {
 			} catch (Throwable t) {
 				inputChannel.setError(t);
 				return;
-			}
-		}
-	}
-
-	void convertRecoveredInputChannels() {
-		synchronized (requestLock) {
-			for (Map.Entry<IntermediateResultPartitionID, InputChannel> entry : inputChannels.entrySet()) {
-				InputChannel inputChannel = entry.getValue();
-				if (inputChannel instanceof RecoveredInputChannel) {
-					try {
-						InputChannel realInputChannel = ((RecoveredInputChannel) inputChannel).toInputChannel();
-						inputChannel.releaseAllResources();
-						entry.setValue(realInputChannel);
-						channels[inputChannel.getChannelIndex()] = realInputChannel;
-					} catch (Throwable t) {
-						inputChannel.setError(t);
-						return;
-					}
-				}
 			}
 		}
 	}

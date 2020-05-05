@@ -190,7 +190,6 @@ public class SingleInputGateFactory {
 					partitionRequestMaxBackoff,
 					metrics);
 			},
-			// TODO: can we sometimes call createKnownInputChannel?
 			nettyShuffleDescriptor ->
 				createKnownInputChannel(
 					inputGate,
@@ -211,7 +210,7 @@ public class SingleInputGateFactory {
 		if (inputChannelDescriptor.isLocalTo(taskExecutorResourceId)) {
 			// Consuming task is deployed to the same TaskManager as the partition => local
 			channelStatistics.numLocalChannels++;
-			return new LocalRecoveredInputChannel(
+			return new LocalInputChannel(
 				inputGate,
 				index,
 				partitionId,
@@ -223,7 +222,7 @@ public class SingleInputGateFactory {
 		} else {
 			// Different instances => remote
 			channelStatistics.numRemoteChannels++;
-			return new RemoteRecoveredInputChannel(
+			return new RemoteInputChannel(
 				inputGate,
 				index,
 				partitionId,

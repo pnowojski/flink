@@ -136,28 +136,4 @@ public class InputChannelBuilder {
 			maxBackoff,
 			metrics);
 	}
-
-	public LocalRecoveredInputChannel buildLocalRecoveredChannel(SingleInputGate inputGate) {
-		return new LocalRecoveredInputChannel(
-			inputGate,
-			channelIndex,
-			partitionId,
-			partitionManager,
-			taskEventPublisher,
-			initialBackoff,
-			maxBackoff,
-			metrics);
-	}
-
-	public RemoteRecoveredInputChannel buildRemoteRecoveredChannel(SingleInputGate inputGate) {
-		return new RemoteRecoveredInputChannel(
-			inputGate,
-			channelIndex,
-			partitionId,
-			connectionID,
-			connectionManager,
-			initialBackoff,
-			maxBackoff,
-			metrics);
-	}
 }

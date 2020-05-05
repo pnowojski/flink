@@ -699,8 +699,7 @@ public class RemoteInputChannelTest {
 	 * when {@link RemoteInputChannel#notifyBufferAvailable(int)}. Also tests that a second
 	 * listener will be notified in this case.
 	 */
-	//This test is strange....
-	//@Test
+	@Test
 	public void testCreditUpdateInNotifyBufferAvailable() throws Exception {
 		// Setup
 		final int numExclusiveBuffers = 1;
