@@ -226,7 +226,7 @@ public class LocalInputChannel extends RecoveredInputChannel implements BufferAv
 		CheckpointBarrier notifyReceivedBarrier = parseCheckpointBarrierOrNull(buffer);
 		if (notifyReceivedBarrier != null) {
 			receivedCheckpointId = notifyReceivedBarrier.getId();
-		} else if (receivedCheckpointId < lastRequestedCheckpointId) {
+		} else if (receivedCheckpointId < lastRequestedCheckpointId && buffer.isBuffer()) {
 			inputGate.getBufferReceivedListener().notifyBufferReceived(buffer.retainBuffer(), channelInfo);
 		}
 
