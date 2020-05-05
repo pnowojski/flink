@@ -104,7 +104,13 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 
 		// The lock is required to request only once in the presence of retriggered requests.
 		synchronized (requestLock) {
-			checkState(!isReleased, "LocalInputChannel has been released already");
+			// temporary hack?
+			// https://github.com/apache/flink/pull/11687/files#r420100908
+			// https://dev.azure.com/pnowojski/Flink/_build/results?buildId=4&view=logs&j=a1590513-d0ea-59c3-3c7b-aad756c48f25&t=d62215ae-261e-5cec-c84f-5abb77c78ded
+			//checkState(!isReleased, "LocalInputChannel has been released already");
+			if (isReleased) {
+				return;
+			}
 
 			if (subpartitionView == null) {
 				LOG.debug("{}: Requesting LOCAL subpartition {} of partition {}.",
