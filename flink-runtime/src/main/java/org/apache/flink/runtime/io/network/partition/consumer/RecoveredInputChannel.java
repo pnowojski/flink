@@ -21,6 +21,7 @@ package org.apache.flink.runtime.io.network.partition.consumer;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateReader;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateReader.ReadResult;
+import org.apache.flink.runtime.event.TaskEvent;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.metrics.InputChannelMetrics;
 import org.apache.flink.runtime.io.network.partition.BufferReaderWriterUtil;
@@ -33,6 +34,7 @@ import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Optional;
 
 /**
  * An input channel reads recovered state from previous unaligned checkpoint snapshots
@@ -42,6 +44,7 @@ public abstract class RecoveredInputChannel extends InputChannel {
 	private static final Logger LOG = LoggerFactory.getLogger(RecoveredInputChannel.class);
 
 	final ArrayDeque<Buffer> receivedBuffers = new ArrayDeque<>();
+	final BufferManager bufferManager;
 
 	RecoveredInputChannel(
 			SingleInputGate inputGate,
@@ -51,16 +54,20 @@ public abstract class RecoveredInputChannel extends InputChannel {
 			int maxBackoff,
 			InputChannelMetrics metrics) {
 		super(inputGate, channelIndex, partitionId, initialBackoff, maxBackoff, metrics.getNumBytesInRemoteCounter(), metrics.getNumBuffersInRemoteCounter());
+
+		bufferManager = new BufferManager(this, 0);
 	}
+
+	public abstract InputChannel toInputChannel() throws IOException;
 
 	protected void readRecoveredState(ChannelStateReader reader) throws IOException, InterruptedException {
 		ReadResult result = ReadResult.HAS_MORE_DATA;
 		while (result == ReadResult.HAS_MORE_DATA) {
-			Buffer buffer = getBufferManager().requestBufferBlocking();
+			Buffer buffer = bufferManager.requestBufferBlocking();
 			result = internalReaderRecoveredState(reader, buffer);
 		}
+		bufferManager.releaseFloatingBuffers();
 		LOG.info("{}/{} Finished recovering input.", inputGate.getOwningTaskName(), channelInfo);
-		getBufferManager().releaseFloatingBuffers();
 	}
 
 	private ReadResult internalReaderRecoveredState(ChannelStateReader reader, Buffer buffer) throws IOException {
@@ -122,12 +129,36 @@ public abstract class RecoveredInputChannel extends InputChannel {
 		}
 	}
 
+	@Override
+	public void resumeConsumption() {
+		throw new UnsupportedOperationException("RecoveredInputChannel should never be blocked.");
+	}
+
+	@Override
+	void requestSubpartition(int subpartitionIndex) throws IOException, InterruptedException {
+	}
+
+	@Override
+	Optional<BufferAndAvailability> getNextBuffer() throws IOException, InterruptedException {
+		checkError();
+		return Optional.ofNullable(getNextRecoveredStateBuffer());
+	}
+
+	@Override
+	void sendTaskEvent(TaskEvent event) throws IOException {
+	}
+
+	@Override
+	boolean isReleased() {
+		return false;
+	}
+
 	void releaseAllResources() throws IOException {
 		ArrayDeque<Buffer> releasedBuffers;
 		synchronized (receivedBuffers) {
 			releasedBuffers = receivedBuffers;
 		}
-		getBufferManager().releaseAllBuffers(releasedBuffers);
+		bufferManager.releaseAllBuffers(releasedBuffers);
 	}
 
 	@VisibleForTesting
@@ -136,6 +167,4 @@ public abstract class RecoveredInputChannel extends InputChannel {
 			return receivedBuffers.size();
 		}
 	}
-
-	abstract BufferManager getBufferManager();
 }

@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.io.network.partition.consumer;
 
-import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.runtime.event.TaskEvent;
 import org.apache.flink.runtime.execution.CancelTaskException;
 import org.apache.flink.runtime.io.network.TaskEventPublisher;
@@ -48,7 +47,7 @@ import static org.apache.flink.util.Preconditions.checkState;
 /**
  * An input channel, which requests a local subpartition.
  */
-public class LocalInputChannel extends RecoveredInputChannel implements BufferAvailabilityListener {
+public class LocalInputChannel extends InputChannel implements BufferAvailabilityListener {
 
 	private static final Logger LOG = LoggerFactory.getLogger(LocalInputChannel.class);
 
@@ -66,8 +65,6 @@ public class LocalInputChannel extends RecoveredInputChannel implements BufferAv
 	private volatile ResultSubpartitionView subpartitionView;
 
 	private volatile boolean isReleased;
-
-	private final BufferManager bufferManager;
 
 	/** The latest already triggered checkpoint id which would be updated during {@link #requestInflightBuffers(long)}.*/
 	private long lastRequestedCheckpointId = -1;
@@ -97,14 +94,10 @@ public class LocalInputChannel extends RecoveredInputChannel implements BufferAv
 		int maxBackoff,
 		InputChannelMetrics metrics) {
 
-		super(inputGate, channelIndex, partitionId, initialBackoff, maxBackoff, metrics);
+		super(inputGate, channelIndex, partitionId, initialBackoff, maxBackoff, metrics.getNumBytesInLocalCounter(), metrics.getNumBuffersInLocalCounter());
 
 		this.partitionManager = checkNotNull(partitionManager);
 		this.taskEventPublisher = checkNotNull(taskEventPublisher);
-		// In most cases we only need one buffer for reading recovered state except for very large record.
-		// Then only one floating buffer is required. Even though we need more buffers for recovery for
-		// large record, it only increases some interactions with pool.
-		this.bufferManager = new BufferManager(this, 1);
 	}
 
 	// ------------------------------------------------------------------------
@@ -193,12 +186,6 @@ public class LocalInputChannel extends RecoveredInputChannel implements BufferAv
 	@Override
 	Optional<BufferAndAvailability> getNextBuffer() throws IOException, InterruptedException {
 		checkError();
-
-		BufferAndAvailability bufferAndAvailability = getNextRecoveredStateBuffer();
-		if (bufferAndAvailability != null) {
-			updateMetrics(bufferAndAvailability.buffer());
-			return Optional.of(bufferAndAvailability);
-		}
 
 		ResultSubpartitionView subpartitionView = this.subpartitionView;
 		if (subpartitionView == null) {
@@ -298,8 +285,6 @@ public class LocalInputChannel extends RecoveredInputChannel implements BufferAv
 		if (!isReleased) {
 			isReleased = true;
 
-			super.releaseAllResources();
-
 			ResultSubpartitionView view = subpartitionView;
 			if (view != null) {
 				view.releaseAllResources();
@@ -343,15 +328,5 @@ public class LocalInputChannel extends RecoveredInputChannel implements BufferAv
 		}
 		// already processed
 		return true;
-	}
-
-	@Override
-	public BufferManager getBufferManager() {
-		return bufferManager;
-	}
-
-	@VisibleForTesting
-	ResultSubpartitionView getSubpartitionView() {
-		return subpartitionView;
 	}
 }

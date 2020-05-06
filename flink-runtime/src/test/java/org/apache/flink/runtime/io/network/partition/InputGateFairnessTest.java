@@ -200,6 +200,7 @@ public class InputGateFairnessTest {
 
 		gate.setInputChannels(channels);
 		gate.setup();
+		gate.requestPartitions();
 
 		// read all the buffers and the EOF event
 		for (int i = numberOfChannels * (buffersPerChannel + 1); i > 0; --i) {
@@ -393,7 +394,7 @@ public class InputGateFairnessTest {
 			.buildRemoteChannel(inputGate);
 	}
 
-	public static void setupInputGate(SingleInputGate gate, InputChannel[] channels) throws IOException {
+	public static void setupInputGate(SingleInputGate gate, InputChannel... channels) throws IOException {
 		gate.setInputChannels(channels);
 		gate.setup();
 		gate.requestPartitions();
