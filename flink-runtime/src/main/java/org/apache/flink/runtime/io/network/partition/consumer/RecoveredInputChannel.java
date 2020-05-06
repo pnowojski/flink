@@ -59,6 +59,7 @@ public abstract class RecoveredInputChannel extends InputChannel {
 			Buffer buffer = getBufferManager().requestBufferBlocking();
 			result = internalReaderRecoveredState(reader, buffer);
 		}
+		LOG.info("{}/{} Finished recovering input.", inputGate.getOwningTaskName(), channelInfo);
 		getBufferManager().releaseFloatingBuffers();
 	}
 
