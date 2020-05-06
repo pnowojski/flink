@@ -183,7 +183,7 @@ public class UnalignedCheckpointITCase extends TestLogger {
 
 		final LocalStreamEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(parallelism, conf);
 		env.enableCheckpointing(100);
-		env.setRestartStrategy(RestartStrategies.fixedDelayRestart(1, Time.milliseconds(100)));
+		env.setRestartStrategy(RestartStrategies.fixedDelayRestart(5, Time.milliseconds(100)));
 		env.getCheckpointConfig().enableUnalignedCheckpoints();
 		return env;
 	}
