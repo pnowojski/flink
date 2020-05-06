@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Optional;
 
+import static org.apache.flink.util.Preconditions.checkState;
+
 /**
  * An input channel reads recovered state from previous unaligned checkpoint snapshots
  * via {@link ChannelStateReader}.
@@ -45,6 +47,8 @@ public abstract class RecoveredInputChannel extends InputChannel {
 
 	final ArrayDeque<Buffer> receivedBuffers = new ArrayDeque<>();
 	final BufferManager bufferManager;
+
+	private boolean isReleased = false;
 
 	RecoveredInputChannel(
 			SingleInputGate inputGate,
@@ -119,6 +123,7 @@ public abstract class RecoveredInputChannel extends InputChannel {
 		final boolean moreAvailable;
 
 		synchronized (receivedBuffers) {
+			checkState(!isReleased, "Trying to read from released RecoveredInputChannel");
 			next = receivedBuffers.poll();
 			if (next == null) {
 				return null;
@@ -136,6 +141,7 @@ public abstract class RecoveredInputChannel extends InputChannel {
 
 	@Override
 	void requestSubpartition(int subpartitionIndex) throws IOException, InterruptedException {
+		throw new UnsupportedOperationException("RecoveredInputChannel should never requestSubpartition.");
 	}
 
 	@Override
@@ -150,13 +156,15 @@ public abstract class RecoveredInputChannel extends InputChannel {
 
 	@Override
 	boolean isReleased() {
-		return false;
+		return isReleased;
 	}
 
 	void releaseAllResources() throws IOException {
-		ArrayDeque<Buffer> releasedBuffers;
+		ArrayDeque<Buffer> releasedBuffers = new ArrayDeque<>();
 		synchronized (receivedBuffers) {
-			releasedBuffers = receivedBuffers;
+			releasedBuffers.addAll(receivedBuffers);
+			receivedBuffers.clear();
+			isReleased = true;
 		}
 		bufferManager.releaseAllBuffers(releasedBuffers);
 	}
