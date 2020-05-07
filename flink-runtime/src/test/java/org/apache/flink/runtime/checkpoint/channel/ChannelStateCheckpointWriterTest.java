@@ -70,14 +70,6 @@ public class ChannelStateCheckpointWriterTest {
 	}
 
 	@Test
-	public void testRecyclingBuffers() throws Exception {
-		ChannelStateCheckpointWriter writer = createWriter(new ChannelStateWriteResult());
-		NetworkBuffer buffer = new NetworkBuffer(HeapMemorySegment.FACTORY.allocateUnpooledSegment(10, null), FreeingBufferRecycler.INSTANCE);
-		writer.writeInput(new InputChannelInfo(1, 2), buffer);
-		assertTrue(buffer.isRecycled());
-	}
-
-	@Test
 	public void testFlush() throws Exception {
 		class FlushRecorder extends DataOutputStream {
 			private boolean flushed = false;

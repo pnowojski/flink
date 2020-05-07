@@ -66,6 +66,7 @@ import org.apache.flink.runtime.shuffle.NettyShuffleDescriptor;
 import org.apache.flink.runtime.shuffle.ShuffleDescriptor;
 import org.apache.flink.runtime.shuffle.UnknownShuffleDescriptor;
 import org.apache.flink.runtime.state.CheckpointStorageLocationReference;
+import org.apache.flink.util.CloseableIterator;
 import org.apache.flink.util.ExceptionUtils;
 
 import org.junit.Test;
@@ -74,7 +75,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -989,8 +989,10 @@ public class SingleInputGateTest extends InputGateTestBase {
 
 		inputChannel.spillInflightBuffers(0, new ChannelStateWriterImpl.NoOpChannelStateWriter() {
 			@Override
-			public void addInputData(long checkpointId, InputChannelInfo info, int startSeqNum, Buffer... data) {
-				inflightBuffers.addAll(Arrays.asList(data));
+			public void addInputData(long checkpointId, InputChannelInfo info, int startSeqNum, CloseableIterator<Buffer> data) {
+				List<Buffer> list = new ArrayList<>();
+				data.forEachRemaining(list::add);
+				inflightBuffers.addAll(list);
 			}
 		});
 

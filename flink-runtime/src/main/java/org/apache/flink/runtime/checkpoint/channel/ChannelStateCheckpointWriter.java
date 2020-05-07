@@ -113,22 +113,16 @@ class ChannelStateCheckpointWriter {
 	}
 
 	private <K> void write(Map<K, List<Long>> offsets, K key, Buffer[] flinkBuffers, boolean precondition) throws Exception {
-		try {
-			if (result.isDone()) {
-				return;
-			}
-			runWithChecks(() -> {
-				checkState(precondition);
-				offsets
-					.computeIfAbsent(key, unused -> new ArrayList<>())
-					.add(checkpointStream.getPos());
-				serializer.writeData(dataStream, flinkBuffers);
-			});
-		} finally {
-			for (Buffer flinkBuffer : flinkBuffers) {
-				flinkBuffer.recycleBuffer();
-			}
+		if (result.isDone()) {
+			return;
 		}
+		runWithChecks(() -> {
+			checkState(precondition);
+			offsets
+				.computeIfAbsent(key, unused -> new ArrayList<>())
+				.add(checkpointStream.getPos());
+			serializer.writeData(dataStream, flinkBuffers);
+		});
 	}
 
 	void completeInput() throws Exception {

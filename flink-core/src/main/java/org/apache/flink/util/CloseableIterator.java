@@ -22,7 +22,10 @@ import javax.annotation.Nonnull;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
+
+import static java.util.Arrays.asList;
 
 /**
  * This interface represents an {@link Iterator} that is also {@link AutoCloseable}. A typical use-case for this
@@ -37,12 +40,46 @@ public interface CloseableIterator<T> extends Iterator<T>, AutoCloseable {
 
 	@Nonnull
 	static <T> CloseableIterator<T> adapterForIterator(@Nonnull Iterator<T> iterator) {
-		return new IteratorAdapter<>(iterator);
+		return adapterForIterator(iterator, () -> {});
+	}
+
+	static <T> CloseableIterator<T> adapterForIterator(@Nonnull Iterator<T> iterator, AutoCloseable close) {
+		return new IteratorAdapter<>(iterator, close);
+	}
+
+	static <T> CloseableIterator<T> fromList(List<T> list, Consumer<T> closeElement) {
+		return new IteratorAdapter<>(list.iterator(), () -> list.forEach(closeElement));
 	}
 
 	@SuppressWarnings("unchecked")
 	static <T> CloseableIterator<T> empty() {
 		return (CloseableIterator<T>) EMPTY_INSTANCE;
+	}
+
+	static <T> CloseableIterator<T> ofElements(Consumer<T> closeElement, T... elements) {
+		return fromList(asList(elements), closeElement);
+	}
+
+	static <E> CloseableIterator<E> ofElement(E element, Consumer<E> close) {
+		return new CloseableIterator<E>(){
+			private boolean hasNext = true;
+
+			@Override
+			public boolean hasNext() {
+				return hasNext;
+			}
+
+			@Override
+			public E next() {
+				hasNext = false;
+				return element;
+			}
+
+			@Override
+			public void close() {
+				close.accept(element);
+			}
+		};
 	}
 
 	/**
@@ -54,9 +91,11 @@ public interface CloseableIterator<T> extends Iterator<T>, AutoCloseable {
 
 		@Nonnull
 		private final Iterator<E> delegate;
+		private final AutoCloseable close;
 
-		IteratorAdapter(@Nonnull Iterator<E> delegate) {
+		IteratorAdapter(@Nonnull Iterator<E> delegate, AutoCloseable close) {
 			this.delegate = delegate;
+			this.close = close;
 		}
 
 		@Override
@@ -80,7 +119,8 @@ public interface CloseableIterator<T> extends Iterator<T>, AutoCloseable {
 		}
 
 		@Override
-		public void close() {
+		public void close() throws Exception {
+			close.close();
 		}
 	}
 }

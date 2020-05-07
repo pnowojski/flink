@@ -19,6 +19,7 @@ package org.apache.flink.runtime.checkpoint.channel;
 
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
+import org.apache.flink.util.CloseableIterator;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.LinkedListMultimap;
 import org.apache.flink.shaded.guava18.com.google.common.collect.ListMultimap;
@@ -54,9 +55,9 @@ public class RecordingChannelStateWriter extends MockChannelStateWriter {
 	}
 
 	@Override
-	public void addInputData(long checkpointId, InputChannelInfo info, int startSeqNum, Buffer... data) {
+	public void addInputData(long checkpointId, InputChannelInfo info, int startSeqNum, CloseableIterator<Buffer> data) {
 		checkCheckpointId(checkpointId);
-		addedInput.putAll(info, Arrays.asList(data));
+		data.forEachRemaining(b -> addedInput.put(info, b));
 	}
 
 	@Override
