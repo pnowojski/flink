@@ -22,7 +22,9 @@ import javax.annotation.Nonnull;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.function.Consumer;
 
 import static java.util.Arrays.asList;
@@ -49,6 +51,36 @@ public interface CloseableIterator<T> extends Iterator<T>, AutoCloseable {
 
 	static <T> CloseableIterator<T> fromList(List<T> list, Consumer<T> closeElement) {
 		return new IteratorAdapter<>(list.iterator(), () -> list.forEach(closeElement));
+	}
+
+	static <T> CloseableIterator<T> flatten(CloseableIterator<T>... iterators) {
+		return new CloseableIterator<T>() {
+			private final Queue<CloseableIterator<T>> queue = removeEmptyHead(new LinkedList<>(asList(iterators)));
+
+			private Queue<CloseableIterator<T>> removeEmptyHead(Queue<CloseableIterator<T>> queue) {
+				while (!queue.isEmpty() && !queue.peek().hasNext()) {
+					queue.poll();
+				}
+				return queue;
+			}
+
+			@Override
+			public boolean hasNext() {
+				removeEmptyHead(queue);
+				return !queue.isEmpty();
+			}
+
+			@Override
+			public T next() {
+				removeEmptyHead(queue);
+				return queue.peek().next();
+			}
+
+			@Override
+			public void close() throws Exception {
+				IOUtils.closeAll(iterators);
+			}
+		};
 	}
 
 	@SuppressWarnings("unchecked")
