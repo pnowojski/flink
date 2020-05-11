@@ -289,6 +289,11 @@ public abstract class AbstractStreamOperatorV2<OUT> implements StreamOperator<OU
 		stateHandler.notifyCheckpointComplete(checkpointId);
 	}
 
+	@Override
+	public void notifyCheckpointAborted(long checkpointId) throws Exception {
+		stateHandler.notifyCheckpointAborted(checkpointId);
+	}
+
 	// ------------------------------------------------------------------------
 	//  Properties and Services
 	// ------------------------------------------------------------------------

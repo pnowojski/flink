@@ -343,6 +343,11 @@ public abstract class AbstractStreamOperator<OUT>
 		stateHandler.notifyCheckpointComplete(checkpointId);
 	}
 
+	@Override
+	public void notifyCheckpointAborted(long checkpointId) throws Exception {
+		stateHandler.notifyCheckpointAborted(checkpointId);
+	}
+
 	// ------------------------------------------------------------------------
 	//  Properties and Services
 	// ------------------------------------------------------------------------
