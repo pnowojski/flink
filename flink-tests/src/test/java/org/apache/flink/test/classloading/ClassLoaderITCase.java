@@ -303,7 +303,8 @@ public class ClassLoaderITCase extends TestLogger {
 	 */
 	@Test
 	public void testDisposeSavepointWithCustomKvState() throws Exception {
-		ClusterClient<?> clusterClient = new MiniClusterClient(new Configuration(), miniClusterResource.getMiniCluster());
+		Configuration configuration = new Configuration();
+		ClusterClient<?> clusterClient = new MiniClusterClient(configuration, miniClusterResource.getMiniCluster());
 
 		Deadline deadline = new FiniteDuration(100, TimeUnit.SECONDS).fromNow();
 
@@ -316,7 +317,9 @@ public class ClassLoaderITCase extends TestLogger {
 				String.valueOf(parallelism),
 				checkpointDir.toURI().toString(),
 				"5000",
-				outputDir.toURI().toString()})
+				outputDir.toURI().toString(),
+				"false" // Disable unaligned checkpoints as this test is triggering concurrent savepoints/checkpoints
+			})
 			.build();
 
 		TestStreamEnvironment.setAsContext(
