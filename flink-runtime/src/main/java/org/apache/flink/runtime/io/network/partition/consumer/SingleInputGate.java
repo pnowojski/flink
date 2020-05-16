@@ -273,6 +273,8 @@ public class SingleInputGate extends IndexedInputGate {
 					((RecoveredInputChannel) inputChannel).readRecoveredState(reader);
 				}
 			} catch (Throwable t) {
+				LOG.error("internalReadRecoveredState failed", t);
+				System.out.println(t.getMessage());
 				inputChannel.setError(t);
 				return;
 			}
