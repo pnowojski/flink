@@ -118,8 +118,7 @@ class StreamingWithStateTestBase(state: StateBackendMode) extends StreamingTestB
     * Creates a DataStream from the given non-empty [[Seq]].
     */
   def failingDataSource[T: TypeInformation](data: Seq[T]): DataStream[T] = {
-    env.enableCheckpointing(10, CheckpointingMode.EXACTLY_ONCE)
-    env.getCheckpointConfig.enableUnalignedCheckpoints()
+    env.enableCheckpointing(100, CheckpointingMode.EXACTLY_ONCE)
     env.setRestartStrategy(RestartStrategies.fixedDelayRestart(1, 0))
     // reset failedBefore flag to false
     FailingCollectionSource.reset()

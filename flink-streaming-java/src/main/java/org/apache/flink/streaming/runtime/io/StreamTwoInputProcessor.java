@@ -160,7 +160,6 @@ public final class StreamTwoInputProcessor<IN1, IN2> implements StreamInputProce
 	@Override
 	public InputStatus processInput() throws Exception {
 		int readingInputIndex;
-		Thread.sleep(1);
 		if (isPrepared) {
 			readingInputIndex = selectNextReadingInputIndex();
 			assert readingInputIndex != InputSelection.NONE_AVAILABLE;
