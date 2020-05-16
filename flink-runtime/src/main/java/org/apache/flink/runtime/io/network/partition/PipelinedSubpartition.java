@@ -122,6 +122,7 @@ public class PipelinedSubpartition extends ResultSubpartition {
 				}
 			}
 		}
+		flush();
 	}
 
 	@Override
