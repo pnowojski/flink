@@ -131,6 +131,4 @@ public abstract class CheckpointBarrierHandler implements Closeable {
 			Object... descriptionArgs) throws E {
 		toNotifyOnCheckpoint.executeInTaskThread(runnable, descriptionFormat, descriptionArgs);
 	}
-
-	protected abstract boolean isCheckpointPending();
 }

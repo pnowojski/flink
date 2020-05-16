@@ -46,20 +46,9 @@ public class MockSubtaskCheckpointCoordinatorBuilder {
 	private CloseableRegistry closeableRegistry = new CloseableRegistry();
 	private ExecutorService executorService = Executors.newDirectExecutorService();
 	private BiFunctionWithException<ChannelStateWriter, Long, CompletableFuture<Void>, IOException> prepareInputSnapshot = (channelStateWriter, aLong) -> FutureUtils.completedVoidFuture();
-	private boolean unalignedCheckpointEnabled;
 
 	public MockSubtaskCheckpointCoordinatorBuilder setEnvironment(Environment environment) {
 		this.environment = environment;
-		return this;
-	}
-
-	public MockSubtaskCheckpointCoordinatorBuilder setPrepareInputSnapshot(BiFunctionWithException<ChannelStateWriter, Long, CompletableFuture<Void>, IOException> prepareInputSnapshot) {
-		this.prepareInputSnapshot = prepareInputSnapshot;
-		return this;
-	}
-
-	public MockSubtaskCheckpointCoordinatorBuilder setUnalignedCheckpointEnabled(boolean unalignedCheckpointEnabled) {
-		this.unalignedCheckpointEnabled = unalignedCheckpointEnabled;
 		return this;
 	}
 
@@ -82,7 +71,7 @@ public class MockSubtaskCheckpointCoordinatorBuilder {
 			executorService,
 			environment,
 			asyncExceptionHandler,
-			unalignedCheckpointEnabled,
+			false,
 			prepareInputSnapshot);
 	}
 

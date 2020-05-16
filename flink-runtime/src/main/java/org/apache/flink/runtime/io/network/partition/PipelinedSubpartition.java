@@ -268,7 +268,7 @@ public class PipelinedSubpartition extends ResultSubpartition {
 				return null;
 			}
 
-			if (buffer.getDataType().isBlockingUpstream()) {
+			if (Buffer.DataType.isAlignedExactlyOnceCheckpointBarrier(buffer)) {
 				isBlockedByCheckpoint = true;
 			}
 

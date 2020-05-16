@@ -19,7 +19,6 @@
 package org.apache.flink.streaming.runtime.io;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.runtime.checkpoint.CheckpointException;
 import org.apache.flink.runtime.checkpoint.CheckpointFailureReason;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateWriter;
@@ -248,11 +247,6 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		return Optional.of(threadSafeUnaligner);
 	}
 
-	@Override
-	protected boolean isCheckpointPending() {
-		return numBarrierConsumed > 0;
-	}
-
 	private int getFlattenedChannelIndex(InputChannelInfo channelInfo) {
 		return gateChannelOffsets[channelInfo.getGateIdx()] + channelInfo.getInputChannelIdx();
 	}
@@ -341,13 +335,9 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 			allBarriersReceivedFuture.cancel(false);
 		}
 
-		boolean isCheckpointPending() {
-			return numBarriersReceived > 0;
-		}
-
 		private synchronized void handleNewCheckpoint(CheckpointBarrier barrier) throws IOException {
 			long barrierId = barrier.getId();
-			if (!allBarriersReceivedFuture.isDone() && isCheckpointPending()) {
+			if (!allBarriersReceivedFuture.isDone()) {
 				// we did not complete the current checkpoint, another started before
 				LOG.warn("{}: Received checkpoint barrier for checkpoint {} before completing current checkpoint {}. " +
 						"Skipping current checkpoint.",
@@ -398,15 +388,5 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		public synchronized void setCurrentReceivedCheckpointId(long currentReceivedCheckpointId) {
 			this.currentReceivedCheckpointId = Math.max(currentReceivedCheckpointId, this.currentReceivedCheckpointId);
 		}
-
-		@VisibleForTesting
-		public synchronized int getNumOpenChannels() {
-			return numOpenChannels;
-		}
-	}
-
-	@VisibleForTesting
-	public int getNumOpenChannels() {
-		return threadSafeUnaligner.getNumOpenChannels();
 	}
 }

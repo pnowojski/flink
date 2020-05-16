@@ -247,41 +247,42 @@ public interface Buffer {
 		/**
 		 * DATA_BUFFER indicates that this buffer represents a non-event data buffer.
 		 */
-		DATA_BUFFER(true, false),
+		DATA_BUFFER(true),
 
 		/**
 		 * EVENT_BUFFER indicates that this buffer represents serialized data of an event.
 		 * Note that this type can be further divided into more fine-grained event types
 		 * like {@link #ALIGNED_EXACTLY_ONCE_CHECKPOINT_BARRIER} and etc.
 		 */
-		EVENT_BUFFER(false, false),
+		EVENT_BUFFER(false),
 
 		/**
 		 * ALIGNED_EXACTLY_ONCE_CHECKPOINT_BARRIER indicates that this buffer represents a
 		 * serialized checkpoint barrier of aligned exactly-once checkpoint mode.
 		 */
-		ALIGNED_EXACTLY_ONCE_CHECKPOINT_BARRIER(false, true);
+		ALIGNED_EXACTLY_ONCE_CHECKPOINT_BARRIER(false);
 
 		private final boolean isBuffer;
-		private final boolean isBlockingUpstream;
 
-		DataType(boolean isBuffer, boolean isBlockingUpstream) {
+		DataType(boolean isBuffer) {
 			this.isBuffer = isBuffer;
-			this.isBlockingUpstream = isBlockingUpstream;
 		}
 
 		public boolean isBuffer() {
 			return isBuffer;
 		}
 
-		public boolean isBlockingUpstream() {
-			return isBlockingUpstream;
+		public static boolean isAlignedExactlyOnceCheckpointBarrier(Buffer buffer) {
+			return buffer.getDataType() == ALIGNED_EXACTLY_ONCE_CHECKPOINT_BARRIER;
 		}
 
 		public static DataType getDataType(AbstractEvent event) {
-			return event instanceof CheckpointBarrier && ((CheckpointBarrier) event).getCheckpointOptions().needsAlignment() ?
-					ALIGNED_EXACTLY_ONCE_CHECKPOINT_BARRIER :
-					EVENT_BUFFER;
+			if (event instanceof CheckpointBarrier &&
+					((CheckpointBarrier) event).getCheckpointOptions().isExactlyOnceMode() &&
+					!((CheckpointBarrier) event).getCheckpointOptions().isUnalignedCheckpoint()) {
+				return ALIGNED_EXACTLY_ONCE_CHECKPOINT_BARRIER;
+			}
+			return EVENT_BUFFER;
 		}
 	}
 }
