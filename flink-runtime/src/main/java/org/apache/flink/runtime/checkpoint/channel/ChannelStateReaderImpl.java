@@ -93,7 +93,7 @@ public class ChannelStateReaderImpl implements ChannelStateReader {
 	}
 
 	@Override
-	public ReadResult readInputData(InputChannelInfo info, Buffer buffer) throws IOException {
+	public synchronized ReadResult readInputData(InputChannelInfo info, Buffer buffer) throws IOException {
 		Preconditions.checkState(!isClosed, "reader is closed");
 		log.debug("readInputData, resultSubpartitionInfo: {} , buffer {}", info, buffer);
 		ChannelStateStreamReader reader = inputChannelHandleReaders.get(info);
@@ -101,7 +101,7 @@ public class ChannelStateReaderImpl implements ChannelStateReader {
 	}
 
 	@Override
-	public ReadResult readOutputData(ResultSubpartitionInfo info, BufferBuilder bufferBuilder) throws IOException {
+	public synchronized ReadResult readOutputData(ResultSubpartitionInfo info, BufferBuilder bufferBuilder) throws IOException {
 		Preconditions.checkState(!isClosed, "reader is closed");
 		log.debug("readOutputData, resultSubpartitionInfo: {} , bufferBuilder {}", info, bufferBuilder);
 		ChannelStateStreamReader reader = resultSubpartitionHandleReaders.get(info);
