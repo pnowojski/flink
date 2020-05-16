@@ -782,6 +782,7 @@ class JoinITCase(state: StateBackendMode) extends StreamingWithStateTestBase(sta
 
     val sink = new TestingRetractSink
     tEnv.sqlQuery(query).toRetractStream[Row].addSink(sink).setParallelism(1)
+    System.out.println(env.getExecutionPlan)
     env.execute()
 
     val expected = Seq("null,4", "null,4", "null,4", "null,4", "null,5", "null,5", "null,5",

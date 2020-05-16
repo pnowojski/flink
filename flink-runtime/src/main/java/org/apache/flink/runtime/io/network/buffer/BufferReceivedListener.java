@@ -44,4 +44,7 @@ public interface BufferReceivedListener {
 	 * until this callback returns.
 	 */
 	void notifyBarrierReceived(CheckpointBarrier barrier, InputChannelInfo channelInfo) throws IOException;
+
+	default void checkIndexes(InputChannelInfo channelInfo) {
+	}
 }

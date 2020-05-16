@@ -396,6 +396,11 @@ public class StreamConfig implements Serializable {
 
 	public void setInPhysicalEdges(List<StreamEdge> inEdges) {
 		try {
+			if (inEdges.size() > 1) {
+				if (inEdges.get(0).getTypeNumber() > inEdges.get(1).getTypeNumber()) {
+//					throw new IllegalStateException();
+				}
+			}
 			InstantiationUtil.writeObjectToConfig(inEdges, this.config, IN_STREAM_EDGES);
 		} catch (IOException e) {
 			throw new StreamTaskException("Cannot serialize inward edges.", e);

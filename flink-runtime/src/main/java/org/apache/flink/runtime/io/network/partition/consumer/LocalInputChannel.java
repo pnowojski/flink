@@ -217,7 +217,9 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 		} else if (receivedCheckpointId < lastRequestedCheckpointId && buffer.isBuffer()) {
 			inputGate.getBufferReceivedListener().notifyBufferReceived(buffer.retainBuffer(), channelInfo);
 		}
-
+		if (inputGate.getBufferReceivedListener() != null) {
+			inputGate.getBufferReceivedListener().checkIndexes(channelInfo);
+		}
 		numBytesIn.inc(buffer.getSize());
 		numBuffersIn.inc();
 		return Optional.of(new BufferAndAvailability(buffer, next.isDataAvailable(), next.buffersInBacklog()));

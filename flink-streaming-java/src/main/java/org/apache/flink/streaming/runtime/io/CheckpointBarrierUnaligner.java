@@ -324,6 +324,13 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		}
 
 		@Override
+		public synchronized void checkIndexes(InputChannelInfo channelInfo) {
+			if (storeNewBuffers.length <= handler.getFlattenedChannelIndex(channelInfo)) {
+				throw new IllegalStateException();
+			}
+		}
+
+		@Override
 		public synchronized void notifyBufferReceived(Buffer buffer, InputChannelInfo channelInfo) {
 			if (storeNewBuffers[handler.getFlattenedChannelIndex(channelInfo)]) {
 				channelStateWriter.addInputData(
