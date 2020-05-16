@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.io.network.partition.consumer;
 
-import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.checkpoint.channel.ChannelStateWriter;
 import org.apache.flink.runtime.checkpoint.channel.InputChannelInfo;
 import org.apache.flink.runtime.concurrent.FutureUtils;
@@ -33,7 +32,6 @@ import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import org.apache.flink.runtime.io.network.buffer.BufferPool;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
 import org.apache.flink.runtime.io.network.buffer.BufferReceivedListener;
-import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
 import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool;
 import org.apache.flink.runtime.io.network.partition.BufferAvailabilityListener;
 import org.apache.flink.runtime.io.network.partition.PartitionNotFoundException;
@@ -49,7 +47,6 @@ import org.apache.flink.runtime.io.network.util.TestBufferFactory;
 import org.apache.flink.runtime.io.network.util.TestPartitionProducer;
 import org.apache.flink.runtime.io.network.util.TestProducerSource;
 import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
-import org.apache.flink.runtime.state.CheckpointStorageLocationReference;
 import org.apache.flink.util.function.CheckedSupplier;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
@@ -72,9 +69,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.apache.flink.runtime.checkpoint.CheckpointType.SAVEPOINT;
-import static org.apache.flink.runtime.io.network.api.serialization.EventSerializer.toBuffer;
-import static org.apache.flink.runtime.io.network.buffer.Buffer.DataType.getDataType;
 import static org.apache.flink.runtime.io.network.partition.InputChannelTestUtils.createLocalInputChannel;
 import static org.apache.flink.runtime.io.network.partition.InputChannelTestUtils.createSingleInputGate;
 import static org.apache.flink.runtime.io.network.partition.InputGateFairnessTest.setupInputGate;
@@ -460,18 +454,6 @@ public class LocalInputChannelTest {
 
 		localChannel.releaseAllResources();
 		localChannel.resumeConsumption();
-	}
-
-	@Test
-	public void testNoNotifyOnSavepoint() throws IOException {
-		TestBufferReceivedListener listener = new TestBufferReceivedListener();
-		SingleInputGate inputGate = new SingleInputGateBuilder().build();
-		inputGate.registerBufferReceivedListener(listener);
-		LocalInputChannel channel = InputChannelBuilder.newBuilder().buildLocalChannel(inputGate);
-		CheckpointBarrier barrier = new CheckpointBarrier(123L, 123L, new CheckpointOptions(SAVEPOINT, CheckpointStorageLocationReference.getDefault()));
-		channel.notifyPriorityEvent(new BufferConsumer(toBuffer(barrier).getMemorySegment(), FreeingBufferRecycler.INSTANCE, getDataType(barrier)));
-		channel.checkError();
-		assertTrue(listener.notifiedOnBarriers.isEmpty());
 	}
 
 	@Test

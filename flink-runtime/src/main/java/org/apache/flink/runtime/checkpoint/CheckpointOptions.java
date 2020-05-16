@@ -66,10 +66,6 @@ public class CheckpointOptions implements Serializable {
 		this.isUnalignedCheckpoint = isUnalignedCheckpoint;
 	}
 
-	public boolean needsAlignment() {
-		return isExactlyOnceMode() && (getCheckpointType().isSavepoint() || !isUnalignedCheckpoint());
-	}
-
 	// ------------------------------------------------------------------------
 
 	/**
