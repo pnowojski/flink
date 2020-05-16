@@ -59,6 +59,7 @@ class ChannelStateStreamReader implements Closeable {
 		this.stream.incRef();
 		this.serializer = serializer;
 		this.offsets = new LinkedList<>(offsets);
+		System.err.println("offsets = " + offsets);
 	}
 
 	ReadResult readInto(Buffer buffer) throws IOException {
