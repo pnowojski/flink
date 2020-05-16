@@ -309,6 +309,7 @@ public class SingleInputGate extends IndexedInputGate {
 
 	@VisibleForTesting
 	void convertRecoveredInputChannels() {
+		checkState(inputChannelsWithData.isEmpty());
 		for (Map.Entry<IntermediateResultPartitionID, InputChannel> entry : inputChannels.entrySet()) {
 			InputChannel inputChannel = entry.getValue();
 			if (inputChannel instanceof RecoveredInputChannel) {
