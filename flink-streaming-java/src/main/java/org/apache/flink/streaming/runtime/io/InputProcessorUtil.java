@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -79,6 +80,14 @@ public class InputProcessorUtil {
 		for (int i = 0; i < inputGates.length; i++) {
 			unionedInputGates[i] = InputGateUtil.createInputGate(inputGates[i].toArray(new IndexedInputGate[0]));
 		}
+
+		String inputIndexes = Arrays
+			.stream(inputGates)
+			.flatMap(collection -> collection.stream())
+			.mapToInt(IndexedInputGate::getGateIndex)
+			.mapToObj(Integer::toString)
+			.collect(Collectors.joining());
+		System.err.println(taskName + " inputIndexes = " + inputIndexes);
 
 		IntStream numberOfInputChannelsPerGate =
 			Arrays

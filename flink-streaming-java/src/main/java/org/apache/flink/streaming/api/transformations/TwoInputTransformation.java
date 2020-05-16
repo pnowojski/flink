@@ -87,6 +87,10 @@ public class TwoInputTransformation<IN1, IN2, OUT> extends PhysicalTransformatio
 		this.input1 = input1;
 		this.input2 = input2;
 		this.operatorFactory = operatorFactory;
+
+		System.err.println(toString());
+		System.err.println("left = " + input1);
+		System.err.println("right = " + input2);
 	}
 
 	/**
