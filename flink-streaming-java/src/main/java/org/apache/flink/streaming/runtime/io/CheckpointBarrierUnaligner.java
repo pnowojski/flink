@@ -117,7 +117,7 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 
 	@Override
 	public void releaseBlocksAndResetBarriers() {
-		if (isCheckpointPending()) {
+		if (numBarrierConsumed > 0) {
 			// make sure no additional data is persisted
 			Arrays.fill(hasInflightBuffers, false);
 			// the next barrier that comes must assume it is the first
@@ -149,7 +149,7 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 			CheckpointBarrier receivedBarrier,
 			int channelIndex) throws Exception {
 		long barrierId = receivedBarrier.getId();
-		if (currentConsumedCheckpointId > barrierId || (currentConsumedCheckpointId == barrierId && !isCheckpointPending())) {
+		if (currentConsumedCheckpointId > barrierId || (currentConsumedCheckpointId == barrierId && numBarrierConsumed == 0)) {
 			// ignore old and cancelled barriers
 			return;
 		}
@@ -172,11 +172,11 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 	public void processCancellationBarrier(CancelCheckpointMarker cancelBarrier) throws Exception {
 		final long barrierId = cancelBarrier.getCheckpointId();
 
-		if (currentConsumedCheckpointId >= barrierId && !isCheckpointPending()) {
+		if (currentConsumedCheckpointId >= barrierId && numBarrierConsumed == 0) {
 			return;
 		}
 
-		if (isCheckpointPending()) {
+		if (numBarrierConsumed > 0) {
 			LOG.warn("{}: Received cancellation barrier for checkpoint {} before completing current checkpoint {}. " +
 							"Skipping current checkpoint.",
 					taskName,
@@ -195,7 +195,7 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 	public void processEndOfPartition() throws Exception {
 		threadSafeUnaligner.onChannelClosed();
 
-		if (isCheckpointPending()) {
+		if (numBarrierConsumed > 0) {
 			// let the task know we skip a checkpoint
 			notifyAbort(
 				currentConsumedCheckpointId,
