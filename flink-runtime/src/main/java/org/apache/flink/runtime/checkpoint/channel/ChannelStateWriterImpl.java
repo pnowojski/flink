@@ -104,33 +104,33 @@ public class ChannelStateWriterImpl implements ChannelStateWriter {
 
 	@Override
 	public void addInputData(long checkpointId, InputChannelInfo info, int startSeqNum, Buffer... data) {
-		LOG.debug("add input data, checkpoint id: {}, channel: {}, startSeqNum: {}, num buffers: {}",
+		LOG.debug("add input data, checkpoint {}, channel: {}, startSeqNum: {}, num buffers: {}",
 			checkpointId, info, startSeqNum, data == null ? 0 : data.length);
 		enqueue(write(checkpointId, info, checkBufferType(data)), false);
 	}
 
 	@Override
 	public void addOutputData(long checkpointId, ResultSubpartitionInfo info, int startSeqNum, Buffer... data) {
-		LOG.debug("add output data, checkpoint id: {}, channel: {}, startSeqNum: {}, num buffers: {}",
+		LOG.debug("add output data, checkpoint {}, channel: {}, startSeqNum: {}, num buffers: {}",
 			checkpointId, info, startSeqNum, data == null ? 0 : data.length);
 		enqueue(write(checkpointId, info, checkBufferType(data)), false);
 	}
 
 	@Override
 	public void finishInput(long checkpointId) {
-		LOG.debug("finish input data, checkpoint id: {}", checkpointId);
+		LOG.debug("finish input data, checkpoint {}", checkpointId);
 		enqueue(completeInput(checkpointId), false);
 	}
 
 	@Override
 	public void finishOutput(long checkpointId) {
-		LOG.debug("finish output data, checkpoint id: {}", checkpointId);
+		LOG.debug("finish output data, checkpoint {}", checkpointId);
 		enqueue(completeOutput(checkpointId), false);
 	}
 
 	@Override
 	public void abort(long checkpointId, Throwable cause) {
-		LOG.debug("abort, checkpoint id: {}", checkpointId);
+		LOG.debug("abort, checkpoint {}", checkpointId);
 		enqueue(ChannelStateWriteRequest.abort(checkpointId, cause), true); // abort already started
 		enqueue(ChannelStateWriteRequest.abort(checkpointId, cause), false); // abort enqueued but not started
 		results.remove(checkpointId);
@@ -138,14 +138,15 @@ public class ChannelStateWriterImpl implements ChannelStateWriter {
 
 	@Override
 	public ChannelStateWriteResult getWriteResult(long checkpointId) {
-		LOG.debug("requested write result, checkpoint id: {}", checkpointId);
+		LOG.debug("requested write result, checkpoint {}", checkpointId);
 		ChannelStateWriteResult result = results.get(checkpointId);
-		Preconditions.checkArgument(result != null, "channel state write result not found for checkpoint id " + checkpointId);
+		Preconditions.checkArgument(result != null, "channel state write result not found for checkpoint " + checkpointId);
 		return result;
 	}
 
 	@Override
 	public void stop(long checkpointId) {
+		LOG.debug("stop, checkpoint {}", checkpointId);
 		results.remove(checkpointId);
 	}
 
@@ -155,6 +156,7 @@ public class ChannelStateWriterImpl implements ChannelStateWriter {
 
 	@Override
 	public void close() throws IOException {
+		LOG.debug("close, dropping checkpoints {}", results.keySet());
 		results.clear();
 		executor.close();
 	}
