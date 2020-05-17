@@ -163,10 +163,9 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 			hasInflightBuffers[channelIndex] = false;
 			numBarrierConsumed++;
 		}
-		// processBarrier is called from task thread and can actually happen before notifyBarrierReceived on empty
-		// buffer queues
-		// to avoid replicating any logic, we simply call notifyBarrierReceived here as well
-		threadSafeUnaligner.notifyBarrierReceived(receivedBarrier, channelInfos[channelIndex]);
+		if (threadSafeUnaligner.notifyBarrierReceivedInternal(receivedBarrier, channelInfos[channelIndex], true)) {
+			notifyCheckpoint(receivedBarrier, 0);
+		}
 	}
 
 	@Override
@@ -176,7 +175,9 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		if (currentConsumedCheckpointId >= barrierId && !isCheckpointPending()) {
 			return;
 		}
-
+		if (currentConsumedCheckpointId > barrierId) {
+			return;
+		}
 		if (isCheckpointPending()) {
 			LOG.warn("{}: Received cancellation barrier for checkpoint {} before completing current checkpoint {}. " +
 							"Skipping current checkpoint.",
@@ -188,7 +189,7 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		}
 		releaseBlocksAndResetBarriers();
 		currentConsumedCheckpointId = barrierId;
-		threadSafeUnaligner.setCurrentReceivedCheckpointId(currentConsumedCheckpointId);
+		threadSafeUnaligner.setCurrentCancelledCheckpointId(currentConsumedCheckpointId);
 		notifyAbortOnCancellationBarrier(barrierId);
 	}
 
@@ -257,6 +258,19 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		return gateChannelOffsets[channelInfo.getGateIdx()] + channelInfo.getInputChannelIdx();
 	}
 
+	private void notifyCheckpoint(CheckpointBarrier barrier) throws IOException {
+		long lastCancelledCheckpointId = threadSafeUnaligner.getLastCancelledCheckpointId();
+		if (lastCancelledCheckpointId >= barrier.getId()) {
+			LOG.debug("Ignoring checkpoint {} was cancelled before we managed to process it. " +
+					"Last cancelled checkpoint {}.",
+				barrier.getId(),
+				lastCancelledCheckpointId);
+		}
+		else {
+			notifyCheckpoint(barrier, 0);
+		}
+	}
+
 	@ThreadSafe
 	private static class ThreadSafeUnaligner implements BufferReceivedListener, Closeable {
 
@@ -283,6 +297,8 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		 */
 		private long currentReceivedCheckpointId = -1L;
 
+		private long lastCancelledCheckpointId = -1L;
+
 		/** The number of opened channels. */
 		private int numOpenChannels;
 
@@ -301,12 +317,31 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		}
 
 		@Override
-		public synchronized void notifyBarrierReceived(CheckpointBarrier barrier, InputChannelInfo channelInfo) throws IOException {
-			long barrierId = barrier.getId();
+		public void notifyBarrierReceived(CheckpointBarrier barrier, InputChannelInfo channelInfo) throws IOException {
+			notifyBarrierReceivedInternal(barrier, channelInfo, false);
+		}
 
+		private synchronized boolean notifyBarrierReceivedInternal(CheckpointBarrier barrier, InputChannelInfo channelInfo, boolean inTaskThread) throws IOException {
+			boolean isFirstOne = false;
+			long barrierId = barrier.getId();
+			LOG.info("{}: notifyBarrierReceived for checkpoint {} with current checkpoint {}",
+				handler.taskName,
+				barrierId,
+				currentReceivedCheckpointId);
+
+			if (lastCancelledCheckpointId >= barrierId) {
+				LOG.debug("{}: Ignoring checkpoint barrier for checkpoint {} after canceling checkpoint {}. ",
+					handler.taskName,
+					barrierId,
+					lastCancelledCheckpointId);
+				return false;
+			}
 			if (currentReceivedCheckpointId < barrierId) {
+				isFirstOne = true;
 				handleNewCheckpoint(barrier);
-				handler.executeInTaskThread(() -> handler.notifyCheckpoint(barrier, 0), "notifyCheckpoint");
+				if (!inTaskThread) {
+					handler.executeInTaskThread(() -> handler.notifyCheckpoint(barrier), "notifyCheckpoint");
+				}
 			}
 
 			int channelIndex = handler.getFlattenedChannelIndex(channelInfo);
@@ -321,6 +356,7 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 					allBarriersReceivedFuture.complete(null);
 				}
 			}
+			return isFirstOne;
 		}
 
 		@Override
@@ -347,6 +383,8 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 
 		private synchronized void handleNewCheckpoint(CheckpointBarrier barrier) throws IOException {
 			long barrierId = barrier.getId();
+			setLastCancelledCheckpointId(barrierId - 1);
+
 			if (!allBarriersReceivedFuture.isDone() && isCheckpointPending()) {
 				// we did not complete the current checkpoint, another started before
 				LOG.warn("{}: Received checkpoint barrier for checkpoint {} before completing current checkpoint {}. " +
@@ -379,6 +417,7 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 				// the next barrier that comes must assume it is the first
 				numBarriersReceived = 0;
 			}
+			setLastCancelledCheckpointId(checkpointId);
 		}
 
 		public synchronized CompletableFuture<Void> getAllBarriersReceivedFuture(long checkpointId) {
@@ -392,16 +431,26 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		}
 
 		public synchronized void onChannelClosed() {
+			setLastCancelledCheckpointId(currentReceivedCheckpointId);
 			numOpenChannels--;
 		}
 
-		public synchronized void setCurrentReceivedCheckpointId(long currentReceivedCheckpointId) {
+		public synchronized void setCurrentCancelledCheckpointId(long currentReceivedCheckpointId) {
+			setLastCancelledCheckpointId(currentReceivedCheckpointId);
 			this.currentReceivedCheckpointId = Math.max(currentReceivedCheckpointId, this.currentReceivedCheckpointId);
+		}
+
+		private void setLastCancelledCheckpointId(long lastCancelledCheckpointId) {
+			this.lastCancelledCheckpointId = Math.max(lastCancelledCheckpointId, this.lastCancelledCheckpointId);
 		}
 
 		@VisibleForTesting
 		public synchronized int getNumOpenChannels() {
 			return numOpenChannels;
+		}
+
+		public synchronized long getLastCancelledCheckpointId() {
+			return lastCancelledCheckpointId;
 		}
 	}
 

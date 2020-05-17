@@ -49,7 +49,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ErrorCollector;
 import org.junit.rules.TemporaryFolder;
-import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +56,6 @@ import javax.annotation.Nonnull;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.shaded.guava18.com.google.common.collect.Iterables.getOnlyElement;
 import static org.hamcrest.Matchers.equalTo;
@@ -117,10 +115,10 @@ public class UnalignedCheckpointITCase extends TestLogger {
 	@Rule
 	public final TemporaryFolder temp = new TemporaryFolder();
 
-	@Rule
-	public final Timeout timeout = Timeout.builder()
-			.withTimeout(300, TimeUnit.SECONDS)
-			.build();
+//	@Rule
+//	public final Timeout timeout = Timeout.builder()
+//			.withTimeout(300, TimeUnit.SECONDS)
+//			.build();
 
 	@Test
 	public void shouldPerformUnalignedCheckpointOnNonParallelLocalChannel() throws Exception {

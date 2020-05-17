@@ -882,7 +882,6 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 						advanceToEndOfEventTime();
 					}
 				}
-
 				subtaskCheckpointCoordinator.checkpointState(
 					checkpointMetaData,
 					checkpointOptions,
