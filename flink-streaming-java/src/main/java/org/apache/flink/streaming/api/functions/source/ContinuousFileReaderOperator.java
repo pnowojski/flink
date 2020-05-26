@@ -270,7 +270,7 @@ public class ContinuousFileReaderOperator<OUT, T extends TimestampedInputSplit> 
 			"Probably the setOutputType() was not called. Please report it.");
 
 		this.state = ReaderState.IDLE;
-		if (this.format instanceof RichInputFormat) {
+ 		if (this.format instanceof RichInputFormat) {
 			((RichInputFormat) this.format).setRuntimeContext(getRuntimeContext());
 		}
 		this.format.configure(new Configuration());
@@ -311,17 +311,20 @@ public class ContinuousFileReaderOperator<OUT, T extends TimestampedInputSplit> 
 	}
 
 	private void processRecord() throws IOException {
-		if (!state.prepareToProcessRecord(this)) {
-			return;
-		}
+		do {
+			if (!state.prepareToProcessRecord(this)) {
+				return;
+			}
 
-		readAndCollectRecord();
+			readAndCollectRecord();
 
-		if (format.reachedEnd()) {
-			onSplitProcessed();
-		} else {
-			enqueueProcessRecord();
+			if (format.reachedEnd()) {
+				onSplitProcessed();
+				return;
+			}
 		}
+		while (executor.isEmpty());
+		enqueueProcessRecord();
 	}
 
 	private void onSplitProcessed() throws IOException {

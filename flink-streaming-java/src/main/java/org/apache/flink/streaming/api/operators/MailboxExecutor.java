@@ -78,6 +78,8 @@ public interface MailboxExecutor {
 	 */
 	Object[] EMPTY_ARGS = new Object[0];
 
+	boolean isEmpty();
+
 	/**
 	 * Executes the given command at some time in the future in the mailbox thread.
 	 *

@@ -50,6 +50,11 @@ public final class MailboxExecutorImpl implements MailboxExecutor {
 	}
 
 	@Override
+	public boolean isEmpty() {
+		return !mailbox.hasMail();
+	}
+
+	@Override
 	public void execute(
 			final ThrowingRunnable<? extends Exception> command,
 			final String descriptionFormat,
