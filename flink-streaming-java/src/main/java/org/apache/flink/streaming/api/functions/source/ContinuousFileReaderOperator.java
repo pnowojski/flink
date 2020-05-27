@@ -323,7 +323,7 @@ public class ContinuousFileReaderOperator<OUT, T extends TimestampedInputSplit> 
 				return;
 			}
 		}
-		while (executor.isEmpty());
+		while (executor.isIdle());
 		enqueueProcessRecord();
 	}
 

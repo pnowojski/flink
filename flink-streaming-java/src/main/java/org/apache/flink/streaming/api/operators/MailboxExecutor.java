@@ -17,6 +17,7 @@
 
 package org.apache.flink.streaming.api.operators;
 
+import org.apache.flink.annotation.Experimental;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.runtime.concurrent.FutureTaskWithException;
 import org.apache.flink.streaming.runtime.tasks.mailbox.Mail;
@@ -78,7 +79,12 @@ public interface MailboxExecutor {
 	 */
 	Object[] EMPTY_ARGS = new Object[0];
 
-	boolean isEmpty();
+	/**
+	 *
+	 * @return
+	 */
+	@Experimental
+	boolean isIdle();
 
 	/**
 	 * Executes the given command at some time in the future in the mailbox thread.

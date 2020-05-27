@@ -50,8 +50,8 @@ public final class MailboxExecutorImpl implements MailboxExecutor {
 	}
 
 	@Override
-	public boolean isEmpty() {
-		return !mailbox.hasMail();
+	public boolean isIdle() {
+		return !mailbox.hasMail() && mailbox.isOpen() && defaultActionUnavailable();
 	}
 
 	@Override
