@@ -165,8 +165,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	@Nullable
 	protected StreamInputProcessor inputProcessor;
 
-	/** the head operator that consumes the input streams of this task. */
-	protected OP headOperator;
+	/** the main operator that consumes the input streams of this task. */
+	protected OP mainOperator;
 
 	/** The chain of operators executed by this task. */
 	protected OperatorChain<OUT, OP> operatorChain;
@@ -457,7 +457,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		LOG.debug("Initializing {}.", getName());
 
 		operatorChain = new OperatorChain<>(this, recordWriter);
-		headOperator = operatorChain.getHeadOperator();
+		mainOperator = operatorChain.getMainOperator();
 
 		// task specific initialization
 		init();
@@ -1055,8 +1055,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	}
 
 	@VisibleForTesting
-	OP getHeadOperator() {
-		return this.headOperator;
+	OP getMainOperator() {
+		return this.mainOperator;
 	}
 
 	@VisibleForTesting

@@ -543,7 +543,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
 			checkpointOptions,
 			storage,
 			isCanceled);
-		if (op == operatorChain.getHeadOperator()) {
+		if (op == operatorChain.getMainOperator()) {
 			snapshotInProgress.setInputChannelStateFuture(
 				channelStateWriteResult
 					.getInputChannelStateHandles()
