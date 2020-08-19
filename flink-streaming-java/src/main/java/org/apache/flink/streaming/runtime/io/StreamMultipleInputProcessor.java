@@ -107,7 +107,7 @@ public final class StreamMultipleInputProcessor implements StreamInputProcessor 
 						checkpointedInputGates[networkInput.getInputGateIndex()],
 						networkInput.getTypeSerializer(),
 						ioManager,
-						new StatusWatermarkValve(checkpointedInputGates[i].getNumberOfInputChannels(), dataOutput),
+						new StatusWatermarkValve(checkpointedInputGates[networkInput.getInputGateIndex()].getNumberOfInputChannels(), dataOutput),
 						i));
 			}
 			else {
