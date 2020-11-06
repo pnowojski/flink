@@ -420,13 +420,13 @@ public abstract class InputChannel {
 		}
 
 		protected boolean checkForBarrier(Buffer buffer) throws IOException {
-			final AbstractEvent priorityEvent = parsePriorityEvent(buffer);
-			if (priorityEvent instanceof CheckpointBarrier) {
+			final AbstractEvent event = parseEvent(buffer);
+			if (event instanceof CheckpointBarrier) {
 				pendingCheckpointBarrierId = BARRIER_RECEIVED;
 				return true;
 			}
-			else if (priorityEvent instanceof EventAnnouncement) {
-				EventAnnouncement announcement = (EventAnnouncement) priorityEvent;
+			else if (event instanceof EventAnnouncement) {
+				EventAnnouncement announcement = (EventAnnouncement) event;
 				return announcement.getAnnouncedEvent() instanceof CheckpointBarrier;
 			}
 			return false;
@@ -437,8 +437,8 @@ public abstract class InputChannel {
 		 * returns null in all other cases.
 		 */
 		@Nullable
-		protected AbstractEvent parsePriorityEvent(Buffer buffer) throws IOException {
-			if (buffer.isBuffer() || !buffer.getDataType().hasPriority()) {
+		protected AbstractEvent parseEvent(Buffer buffer) throws IOException {
+			if (buffer.isBuffer()) {
 				return null;
 			}
 

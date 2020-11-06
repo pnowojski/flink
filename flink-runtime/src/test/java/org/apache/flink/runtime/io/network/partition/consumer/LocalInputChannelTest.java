@@ -458,6 +458,15 @@ public class LocalInputChannelTest {
 
 	@Test
 	public void testCheckpointingInflightData() throws Exception {
+		testCheckpointingInflightData(0);
+	}
+
+	@Test
+	public void testTimeoutableCheckpointingInflightData() throws Exception {
+		testCheckpointingInflightData(10);
+	}
+
+	private void testCheckpointingInflightData(int alignmentTimeout) throws Exception {
 		SingleInputGate inputGate = new SingleInputGateBuilder().build();
 
 		PipelinedResultPartition parent = (PipelinedResultPartition) PartitionTestUtils.createPartition(
@@ -474,8 +483,12 @@ public class LocalInputChannelTest {
 		final RecordingChannelStateWriter stateWriter = new RecordingChannelStateWriter();
 		inputGate.setChannelStateWriter(stateWriter);
 
-		final CheckpointStorageLocationReference location = CheckpointStorageLocationReference.getDefault();
-		CheckpointOptions options = new CheckpointOptions(CheckpointType.CHECKPOINT, location, true, true, 0);
+		CheckpointOptions options = CheckpointOptions.create(
+			CheckpointType.CHECKPOINT,
+			CheckpointStorageLocationReference.getDefault(),
+			true,
+			true,
+			alignmentTimeout);
 		stateWriter.start(0, options);
 
 		final CheckpointBarrier barrier = new CheckpointBarrier(0, 123L, options);
@@ -485,11 +498,17 @@ public class LocalInputChannelTest {
 		subpartition.add(BufferBuilderTestUtils.createFilledFinishedBufferConsumer(1));
 		assertTrue(channel.getNextBuffer().isPresent());
 
-		subpartition.add(EventSerializer.toBufferConsumer(barrier, true));
+		subpartition.add(EventSerializer.toBufferConsumer(barrier, options.isUnalignedCheckpoint()));
 		assertTrue(channel.getNextBuffer().isPresent());
 
 		subpartition.add(BufferBuilderTestUtils.createFilledFinishedBufferConsumer(2));
-		assertTrue(channel.getNextBuffer().isPresent());
+		if (options.isUnalignedCheckpoint()) {
+			assertTrue(channel.getNextBuffer().isPresent());
+		}
+		else {
+			// blocked channel
+			assertFalse(channel.getNextBuffer().isPresent());
+		}
 
 		assertArrayEquals(
 			stateWriter.getAddedInput().get(channel.getChannelInfo()).stream().mapToInt(Buffer::getSize).toArray(),
