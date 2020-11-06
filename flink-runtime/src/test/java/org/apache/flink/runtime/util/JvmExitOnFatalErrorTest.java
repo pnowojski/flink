@@ -191,7 +191,8 @@ public class JvmExitOnFatalErrorTest {
 						executionAttemptID,
 						localStateStore,
 						null,
-						mock(CheckpointResponder.class));
+						mock(CheckpointResponder.class),
+						"test");
 
 				Task task = new Task(
 						jobInformation,

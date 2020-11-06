@@ -111,7 +111,9 @@ public class SequentialChannelStateReaderImplTest {
 		Map<InputChannelInfo, List<byte[]>> inputChannelsData = generateState(InputChannelInfo::new);
 		Map<ResultSubpartitionInfo, List<byte[]>> resultPartitionsData = generateState(ResultSubpartitionInfo::new);
 
-		SequentialChannelStateReader reader = new SequentialChannelStateReaderImpl(buildSnapshot(writePermuted(inputChannelsData, resultPartitionsData)));
+		SequentialChannelStateReader reader = new SequentialChannelStateReaderImpl(
+			buildSnapshot(writePermuted(inputChannelsData, resultPartitionsData)),
+			"test");
 
 		withResultPartitions(resultPartitions -> {
 			reader.readOutputData(resultPartitions, false);

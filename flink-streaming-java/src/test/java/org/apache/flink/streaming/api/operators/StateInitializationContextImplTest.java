@@ -158,7 +158,8 @@ public class StateInitializationContextImplTest {
 			new ExecutionAttemptID(),
 			new TestTaskLocalStateStore(),
 			jobManagerTaskRestore,
-			mock(CheckpointResponder.class));
+			mock(CheckpointResponder.class),
+			"test");
 
 		DummyEnvironment environment = new DummyEnvironment(
 			"test",

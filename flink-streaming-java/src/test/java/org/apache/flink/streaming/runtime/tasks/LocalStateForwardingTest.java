@@ -210,7 +210,8 @@ public class LocalStateForwardingTest extends TestLogger {
 				executionAttemptID,
 				taskLocalStateStore,
 				null,
-				checkpointResponder);
+				checkpointResponder,
+				"test");
 
 		taskStateManager.reportTaskStateSnapshots(
 			checkpointMetaData,

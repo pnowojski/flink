@@ -50,23 +50,25 @@ public class SequentialChannelStateReaderImpl implements SequentialChannelStateR
 	private final TaskStateSnapshot taskStateSnapshot;
 	private final ChannelStateSerializer serializer;
 	private final ChannelStateChunkReader chunkReader;
+	private final String taskName;
 
-	public SequentialChannelStateReaderImpl(TaskStateSnapshot taskStateSnapshot) {
+	public SequentialChannelStateReaderImpl(TaskStateSnapshot taskStateSnapshot, String taskName) {
 		this.taskStateSnapshot = taskStateSnapshot;
 		this.serializer = new ChannelStateSerializerImpl();
 		this.chunkReader = new ChannelStateChunkReader(serializer);
+		this.taskName = taskName;
 	}
 
 	@Override
 	public void readInputData(InputGate[] inputGates) throws IOException, InterruptedException {
-		try (InputChannelRecoveredStateHandler stateHandler = new InputChannelRecoveredStateHandler(inputGates)) {
+		try (InputChannelRecoveredStateHandler stateHandler = new InputChannelRecoveredStateHandler(inputGates, taskName)) {
 			read(stateHandler, groupByDelegate(streamSubtaskStates(), OperatorSubtaskState::getInputChannelState));
 		}
 	}
 
 	@Override
 	public void readOutputData(ResultPartitionWriter[] writers, boolean notifyAndBlockOnCompletion) throws IOException, InterruptedException {
-		try (ResultSubpartitionRecoveredStateHandler stateHandler = new ResultSubpartitionRecoveredStateHandler(writers, notifyAndBlockOnCompletion)) {
+		try (ResultSubpartitionRecoveredStateHandler stateHandler = new ResultSubpartitionRecoveredStateHandler(writers, notifyAndBlockOnCompletion, taskName)) {
 			read(stateHandler, groupByDelegate(streamSubtaskStates(), OperatorSubtaskState::getResultSubpartitionState));
 		}
 	}

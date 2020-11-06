@@ -705,7 +705,8 @@ public class StreamTaskTest extends TestLogger {
 			new ExecutionAttemptID(),
 			mock(TaskLocalStateStoreImpl.class),
 			null,
-			checkpointResponder);
+			checkpointResponder,
+			"test");
 
 		KeyedStateHandle managedKeyedStateHandle = mock(KeyedStateHandle.class);
 		KeyedStateHandle rawKeyedStateHandle = mock(KeyedStateHandle.class);
@@ -879,7 +880,8 @@ public class StreamTaskTest extends TestLogger {
 			new ExecutionAttemptID(),
 			mock(TaskLocalStateStoreImpl.class),
 			null,
-			checkpointResponder);
+			checkpointResponder,
+			"test");
 
 		// mock the operator with empty snapshot result (all state handles are null)
 		OneInputStreamOperator<String, String> statelessOperator = streamOperatorWithSnapshot(new OperatorSnapshotFutures());

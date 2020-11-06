@@ -77,14 +77,17 @@ public class TaskStateManagerImpl implements TaskStateManager {
 			@Nonnull ExecutionAttemptID executionAttemptID,
 			@Nonnull TaskLocalStateStore localStateStore,
 			@Nullable JobManagerTaskRestore jobManagerTaskRestore,
-			@Nonnull CheckpointResponder checkpointResponder) {
+			@Nonnull CheckpointResponder checkpointResponder,
+			@Nonnull String taskName) {
 		this(
 			jobId,
 			executionAttemptID,
 			localStateStore,
 			jobManagerTaskRestore,
 			checkpointResponder,
-			new SequentialChannelStateReaderImpl(jobManagerTaskRestore == null ? new TaskStateSnapshot() : jobManagerTaskRestore.getTaskStateSnapshot()));
+			new SequentialChannelStateReaderImpl(
+				jobManagerTaskRestore == null ? new TaskStateSnapshot() : jobManagerTaskRestore.getTaskStateSnapshot(),
+				taskName));
 	}
 
 	public TaskStateManagerImpl(

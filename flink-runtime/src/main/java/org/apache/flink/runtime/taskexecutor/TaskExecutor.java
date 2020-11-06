@@ -20,6 +20,7 @@ package org.apache.flink.runtime.taskexecutor;
 
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.TaskInfo;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.runtime.accumulators.AccumulatorSnapshot;
 import org.apache.flink.runtime.blob.BlobCacheService;
@@ -605,7 +606,12 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				tdd.getExecutionAttemptId(),
 				localStateStore,
 				taskRestore,
-				checkpointResponder);
+				checkpointResponder,
+				TaskInfo.createTaskNameWithSubtasks(
+					taskInformation.getTaskName(),
+					tdd.getSubtaskIndex(),
+					taskInformation.getNumberOfSubtasks(),
+					tdd.getAttemptNumber()));
 
 			MemoryManager memoryManager;
 			try {

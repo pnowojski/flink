@@ -89,11 +89,12 @@ public class ChannelPersistenceITCase {
 		byte[] resultSubpartitionInfoData = randomBytes(1024);
 		int partitionIndex = 0;
 
-		SequentialChannelStateReader reader = new SequentialChannelStateReaderImpl(toTaskStateSnapshot(write(
-			1L,
-			singletonMap(new InputChannelInfo(0, 0), inputChannelInfoData),
-			singletonMap(new ResultSubpartitionInfo(partitionIndex, 0), resultSubpartitionInfoData)
-		)));
+		SequentialChannelStateReader reader = new SequentialChannelStateReaderImpl(
+			toTaskStateSnapshot(write(
+				1L,
+				singletonMap(new InputChannelInfo(0, 0), inputChannelInfoData),
+				singletonMap(new ResultSubpartitionInfo(partitionIndex, 0), resultSubpartitionInfoData))),
+			"test");
 
 		NetworkBufferPool networkBufferPool = new NetworkBufferPool(4, 1024);
 		try {
@@ -120,7 +121,7 @@ public class ChannelPersistenceITCase {
 		byte[] dataAfterRecovery = randomBytes(1024);
 		try {
 			BufferWritingResultPartition resultPartition = buildResultPartition(networkBufferPool, type, 0, 1);
-			new SequentialChannelStateReaderImpl(new TaskStateSnapshot())
+			new SequentialChannelStateReaderImpl(new TaskStateSnapshot(), "test")
 				.readOutputData(new BufferWritingResultPartition[]{resultPartition}, true);
 			resultPartition.emitRecord(ByteBuffer.wrap(dataAfterRecovery), 0);
 			ResultSubpartitionView view = resultPartition.createSubpartitionView(0, new NoOpBufferAvailablityListener());

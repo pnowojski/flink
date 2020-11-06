@@ -242,6 +242,7 @@ public class TaskStateManagerImplTest extends TestLogger {
 			executionAttemptID,
 			localStateStore,
 			jobManagerTaskRestore,
-			checkpointResponderMock);
+			checkpointResponderMock,
+			"test");
 	}
 }

@@ -27,6 +27,9 @@ import org.apache.flink.runtime.io.network.partition.CheckpointedResultSubpartit
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
 import org.apache.flink.runtime.io.network.partition.consumer.RecoveredInputChannel;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 
 import static org.apache.flink.runtime.checkpoint.channel.ChannelStateByteBuffer.wrap;
@@ -48,10 +51,14 @@ interface RecoveredChannelStateHandler<Info, Context> extends AutoCloseable {
 }
 
 class InputChannelRecoveredStateHandler implements RecoveredChannelStateHandler<InputChannelInfo, Buffer> {
-	private final InputGate[] inputGates;
+	private static final Logger LOG = LoggerFactory.getLogger(InputChannelRecoveredStateHandler.class);
 
-	InputChannelRecoveredStateHandler(InputGate[] inputGates) {
+	private final InputGate[] inputGates;
+	private final String taskName;
+
+	InputChannelRecoveredStateHandler(InputGate[] inputGates, String taskName) {
 		this.inputGates = inputGates;
+		this.taskName = taskName;
 	}
 
 	@Override
@@ -63,6 +70,7 @@ class InputChannelRecoveredStateHandler implements RecoveredChannelStateHandler<
 
 	@Override
 	public void recover(InputChannelInfo channelInfo, Buffer buffer) {
+		LOG.debug("{} recovered {} bytes", taskName, buffer.readableBytes());
 		if (buffer.readableBytes() > 0) {
 			getChannel(channelInfo).onRecoveredStateBuffer(buffer);
 		} else {
@@ -84,13 +92,16 @@ class InputChannelRecoveredStateHandler implements RecoveredChannelStateHandler<
 }
 
 class ResultSubpartitionRecoveredStateHandler implements RecoveredChannelStateHandler<ResultSubpartitionInfo, Tuple2<BufferBuilder, BufferConsumer>> {
+	private static final Logger LOG = LoggerFactory.getLogger(ResultSubpartitionRecoveredStateHandler.class);
 
 	private final ResultPartitionWriter[] writers;
 	private final boolean notifyAndBlockOnCompletion;
+	private final String taskName;
 
-	ResultSubpartitionRecoveredStateHandler(ResultPartitionWriter[] writers, boolean notifyAndBlockOnCompletion) {
+	ResultSubpartitionRecoveredStateHandler(ResultPartitionWriter[] writers, boolean notifyAndBlockOnCompletion, String taskName) {
 		this.writers = writers;
 		this.notifyAndBlockOnCompletion = notifyAndBlockOnCompletion;
+		this.taskName = taskName;
 	}
 
 	@Override
@@ -101,7 +112,8 @@ class ResultSubpartitionRecoveredStateHandler implements RecoveredChannelStateHa
 
 	@Override
 	public void recover(ResultSubpartitionInfo subpartitionInfo, Tuple2<BufferBuilder, BufferConsumer> bufferBuilderAndConsumer) throws IOException {
-		bufferBuilderAndConsumer.f0.finish();
+		int writtenBytes = bufferBuilderAndConsumer.f0.finish();
+		LOG.debug("{} recovered {} bytes", taskName, writtenBytes);
 		if (bufferBuilderAndConsumer.f1.isDataAvailable()) {
 			boolean added = getSubpartition(subpartitionInfo).add(bufferBuilderAndConsumer.f1, Integer.MIN_VALUE);
 			if (!added) {
