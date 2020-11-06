@@ -294,7 +294,6 @@ public class AlternatingControllerTest {
 				new TestSubtaskCheckpointCoordinator(channelStateWriter),
 				gate));
 
-
 		long checkpointCreationTime = System.currentTimeMillis();
 		long alignmentTimeout = 10;
 		CheckpointBarrier barrier = checkpointBarrier(1, CHECKPOINT, checkpointCreationTime, alignmentTimeout);
