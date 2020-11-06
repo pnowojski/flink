@@ -1170,10 +1170,10 @@ public class RemoteInputChannelTest {
 	}
 
 	@Test
-	public void testPersistedBuffersWithTimeoutableCheckpointBarrier() throws Exception {
+	public void testPersistedBuffersWithTimeout() throws Exception {
 		RecordingChannelStateWriter stateWriter = new RecordingChannelStateWriter();
 		final RemoteInputChannel channel =
-			(RemoteInputChannel) buildInputGate(stateWriter).getChannel(0);
+			(RemoteInputChannel) buildInputGate(stateWriter, 1).getChannel(0);
 		CheckpointOptions options = CheckpointOptions.create(
 			CHECKPOINT,
 			CheckpointStorageLocationReference.getDefault(),
@@ -1189,6 +1189,51 @@ public class RemoteInputChannelTest {
 		channel.checkpointStopped(1L);
 		assertThat(
 			toBufferSizes(stateWriter.getAddedInput().get(channel.getChannelInfo())),
+			contains(1, 2));
+	}
+
+	@Test
+	public void testPersistedBuffersWithTimeotAndTwoChannels() throws Exception {
+		RecordingChannelStateWriter stateWriter = new RecordingChannelStateWriter();
+		SingleInputGate inputGate = buildInputGate(stateWriter, 2);
+		final RemoteInputChannel channel0 = (RemoteInputChannel) inputGate.getChannel(0);
+		final RemoteInputChannel channel1 = (RemoteInputChannel) inputGate.getChannel(1);
+
+		CheckpointOptions neverTimeoutable = CheckpointOptions.create(
+			CHECKPOINT,
+			CheckpointStorageLocationReference.getDefault(),
+			true,
+			true,
+			Integer.MAX_VALUE);
+		CheckpointOptions unaligned = CheckpointOptions.create(
+			CHECKPOINT,
+			CheckpointStorageLocationReference.getDefault(),
+			true,
+			true,
+			0);
+
+		stateWriter.start(1L, neverTimeoutable);
+		sendBuffersAndBarrier(channel0, 0, Optional.of(neverTimeoutable));
+		sendBuffersAndBarrier(channel1, 10, Optional.of(unaligned));
+
+		// processed unaligned checkpoint barrier and trigger checkpoint
+		assertGetNextBufferSequenceNumbers(channel1, 12);
+		channel1.checkpointStarted(new CheckpointBarrier(1L, System.currentTimeMillis(), unaligned));
+		channel0.checkpointStarted(new CheckpointBarrier(1L, System.currentTimeMillis(), unaligned));
+
+		// process announcement and convert aligned barrier to unaligned
+		assertGetNextBufferSequenceNumbers(channel0, 2);
+		channel0.convertToPriorityEvent(2);
+		assertGetNextBufferSequenceNumbers(channel0, 2);
+
+		// received both barriers, checkpoint finished
+		channel0.checkpointStopped(1L);
+		channel1.checkpointStopped(1L);
+		assertThat(
+			toBufferSizes(stateWriter.getAddedInput().get(channel0.getChannelInfo())),
+			contains(1, 2));
+		assertThat(
+			toBufferSizes(stateWriter.getAddedInput().get(channel1.getChannelInfo())),
 			contains(1, 2));
 	}
 
@@ -1334,12 +1379,13 @@ public class RemoteInputChannelTest {
 	}
 
 	private RemoteInputChannel buildInputGateAndGetChannel() throws IOException {
-		return (RemoteInputChannel) buildInputGate(new RecordingChannelStateWriter()).getChannel(0);
+		return (RemoteInputChannel) buildInputGate(new RecordingChannelStateWriter(), 1).getChannel(0);
 	}
 
-	private SingleInputGate buildInputGate(ChannelStateWriter channelStateWriter) throws IOException {
-		final NetworkBufferPool networkBufferPool = new NetworkBufferPool(4, 4096);
+	private SingleInputGate buildInputGate(ChannelStateWriter channelStateWriter, int numberOfChannels) throws IOException {
+		final NetworkBufferPool networkBufferPool = new NetworkBufferPool(numberOfChannels * 4, 4096);
 		SingleInputGate inputGate = new SingleInputGateBuilder()
+			.setNumberOfChannels(numberOfChannels)
 			.setChannelFactory(InputChannelBuilder::buildRemoteChannel)
 			.setChannelStateWriter(channelStateWriter)
 			.setBufferPoolFactory(networkBufferPool.createBufferPool(1, 4))
