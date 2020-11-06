@@ -427,7 +427,10 @@ public abstract class InputChannel {
 			}
 			else if (event instanceof EventAnnouncement) {
 				EventAnnouncement announcement = (EventAnnouncement) event;
-				return announcement.getAnnouncedEvent() instanceof CheckpointBarrier;
+				if (announcement.getAnnouncedEvent() instanceof CheckpointBarrier) {
+					pendingCheckpointBarrierId = BARRIER_RECEIVED;
+					return true;
+				}
 			}
 			return false;
 		}

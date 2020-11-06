@@ -20,6 +20,8 @@ package org.apache.flink.runtime.io.network.partition.consumer;
 
 import org.apache.flink.core.testutils.OneShotLatch;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
+import org.apache.flink.runtime.checkpoint.channel.ChannelStateWriter;
+import org.apache.flink.runtime.checkpoint.channel.RecordingChannelStateWriter;
 import org.apache.flink.runtime.execution.CancelTaskException;
 import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.io.network.ConnectionID;
@@ -1167,6 +1169,29 @@ public class RemoteInputChannelTest {
 		assertInflightBufferSizes(channel, 2);
 	}
 
+	@Test
+	public void testPersistedBuffersWithTimeoutableCheckpointBarrier() throws Exception {
+		RecordingChannelStateWriter stateWriter = new RecordingChannelStateWriter();
+		final RemoteInputChannel channel =
+			(RemoteInputChannel) buildInputGate(stateWriter).getChannel(0);
+		CheckpointOptions options = CheckpointOptions.create(
+			CHECKPOINT,
+			CheckpointStorageLocationReference.getDefault(),
+			true,
+			true,
+			Integer.MAX_VALUE);
+		stateWriter.start(1L, options);
+		channel.checkpointStarted(new CheckpointBarrier(1L, System.currentTimeMillis(), options));
+		sendBuffersAndBarrier(channel, 0, Optional.of(options));
+		assertGetNextBufferSequenceNumbers(channel, 2);
+		channel.convertToPriorityEvent(2);
+		assertGetNextBufferSequenceNumbers(channel, 2);
+		channel.checkpointStopped(1L);
+		assertThat(
+			toBufferSizes(stateWriter.getAddedInput().get(channel.getChannelInfo())),
+			contains(1, 2));
+	}
+
 	private static List<Integer> toBufferSizes(List<Buffer> inflightBuffers) {
 		return inflightBuffers.stream()
 			.map(buffer -> buffer.getSize())
@@ -1309,13 +1334,14 @@ public class RemoteInputChannelTest {
 	}
 
 	private RemoteInputChannel buildInputGateAndGetChannel() throws IOException {
-		return (RemoteInputChannel) buildInputGate().getChannel(0);
+		return (RemoteInputChannel) buildInputGate(new RecordingChannelStateWriter()).getChannel(0);
 	}
 
-	private SingleInputGate buildInputGate() throws IOException {
+	private SingleInputGate buildInputGate(ChannelStateWriter channelStateWriter) throws IOException {
 		final NetworkBufferPool networkBufferPool = new NetworkBufferPool(4, 4096);
 		SingleInputGate inputGate = new SingleInputGateBuilder()
 			.setChannelFactory(InputChannelBuilder::buildRemoteChannel)
+			.setChannelStateWriter(channelStateWriter)
 			.setBufferPoolFactory(networkBufferPool.createBufferPool(1, 4))
 			.setSegmentProvider(networkBufferPool)
 			.build();

@@ -551,7 +551,7 @@ public class RemoteInputChannel extends InputChannel implements ChannelStateHold
 	public void convertToPriorityEvent(int sequenceNumber) throws IOException {
 		boolean firstPriorityEvent;
 		synchronized (receivedBuffers) {
-			checkState(!channelStatePersister.hasBarrierReceived());
+			checkState(channelStatePersister.hasBarrierReceived());
 			int numPriorityElementsBeforeRemoval = receivedBuffers.getNumPriorityElements();
 			SequenceBuffer toPrioritize = receivedBuffers.getAndRemove(
 				sequenceBuffer -> sequenceBuffer.sequenceNumber == sequenceNumber);
