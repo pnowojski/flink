@@ -79,9 +79,13 @@ public class ChannelStateWriterImpl implements ChannelStateWriter {
 		this(
 			taskName,
 			new ConcurrentHashMap<>(maxCheckpoints),
-			new ChannelStateWriteRequestExecutorImpl(taskName, new ChannelStateWriteRequestDispatcherImpl(
-				subtaskIndex,
-				streamFactoryResolver, new ChannelStateSerializerImpl())),
+			new ChannelStateWriteRequestExecutorImpl(
+				taskName,
+				new ChannelStateWriteRequestDispatcherImpl(
+					subtaskIndex,
+					streamFactoryResolver,
+					new ChannelStateSerializerImpl(),
+					taskName)),
 			maxCheckpoints);
 	}
 

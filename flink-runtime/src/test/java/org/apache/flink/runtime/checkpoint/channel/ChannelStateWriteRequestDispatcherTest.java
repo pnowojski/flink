@@ -112,7 +112,8 @@ public class ChannelStateWriteRequestDispatcherTest {
 		ChannelStateWriteRequestDispatcher processor = new ChannelStateWriteRequestDispatcherImpl(
 			0,
 			getStreamFactoryFactory(),
-			new ChannelStateSerializerImpl());
+			new ChannelStateSerializerImpl(),
+			"Unknown");
 		try {
 			for (ChannelStateWriteRequest request : requests) {
 				processor.dispatch(request);

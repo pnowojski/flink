@@ -158,8 +158,8 @@ public class ChannelStateCheckpointWriterTest {
 			new ChannelStateSerializerImpl(),
 			NO_OP_RUNNABLE,
 			new MemoryCheckpointOutputStream(42),
-			dataStream
-		);
+			dataStream,
+			"unknown");
 
 		writer.completeInput();
 		writer.completeOutput();
@@ -221,7 +221,7 @@ public class ChannelStateCheckpointWriterTest {
 	}
 
 	private ChannelStateCheckpointWriter createWriter(ChannelStateWriteResult result, CheckpointStateOutputStream stream) throws Exception {
-		return new ChannelStateCheckpointWriter(0, 1L, result, stream, new ChannelStateSerializerImpl(), NO_OP_RUNNABLE);
+		return new ChannelStateCheckpointWriter(0, 1L, result, stream, new ChannelStateSerializerImpl(), NO_OP_RUNNABLE, "Unknown");
 	}
 
 }

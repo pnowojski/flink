@@ -71,20 +71,23 @@ class ChannelStateCheckpointWriter {
 	private boolean allOutputsReceived = false;
 	private final RunnableWithException onComplete;
 	private final int subtaskIndex;
+	private final String taskName;
 
 	ChannelStateCheckpointWriter(
 			int subtaskIndex,
 			CheckpointStartRequest startCheckpointItem,
 			CheckpointStreamFactory streamFactory,
 			ChannelStateSerializer serializer,
-			RunnableWithException onComplete) throws Exception {
+			RunnableWithException onComplete,
+			String taskName) throws Exception {
 		this(
 			subtaskIndex,
 			startCheckpointItem.getCheckpointId(),
 			startCheckpointItem.getTargetResult(),
 			streamFactory.createCheckpointStateOutputStream(EXCLUSIVE),
 			serializer,
-			onComplete);
+			onComplete,
+			taskName);
 	}
 
 	@VisibleForTesting
@@ -94,8 +97,9 @@ class ChannelStateCheckpointWriter {
 			ChannelStateWriteResult result,
 			CheckpointStateOutputStream stream,
 			ChannelStateSerializer serializer,
-			RunnableWithException onComplete) throws Exception {
-		this(subtaskIndex, checkpointId, result, serializer, onComplete, stream, new DataOutputStream(stream));
+			RunnableWithException onComplete,
+			String taskName) throws Exception {
+		this(subtaskIndex, checkpointId, result, serializer, onComplete, stream, new DataOutputStream(stream), taskName);
 	}
 
 	@VisibleForTesting
@@ -106,7 +110,8 @@ class ChannelStateCheckpointWriter {
 			ChannelStateSerializer serializer,
 			RunnableWithException onComplete,
 			CheckpointStateOutputStream checkpointStateOutputStream,
-			DataOutputStream dataStream) throws Exception {
+			DataOutputStream dataStream,
+			String taskName) throws Exception {
 		this.subtaskIndex = subtaskIndex;
 		this.checkpointId = checkpointId;
 		this.result = checkNotNull(result);
@@ -114,14 +119,17 @@ class ChannelStateCheckpointWriter {
 		this.serializer = checkNotNull(serializer);
 		this.dataStream = checkNotNull(dataStream);
 		this.onComplete = checkNotNull(onComplete);
+		this.taskName = taskName;
 		runWithChecks(() -> serializer.writeHeader(dataStream));
 	}
 
 	void writeInput(InputChannelInfo info, Buffer buffer) throws Exception {
+		LOG.debug("[{}] writeInput {} bytes", taskName, buffer.readableBytes());
 		write(inputChannelOffsets, info, buffer, !allInputsReceived);
 	}
 
 	void writeOutput(ResultSubpartitionInfo info, Buffer buffer) throws Exception {
+		LOG.debug("[{}] writeOutput {} bytes", taskName, buffer.readableBytes());
 		write(resultSubpartitionOffsets, info, buffer, !allOutputsReceived);
 	}
 

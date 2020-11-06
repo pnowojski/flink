@@ -71,10 +71,13 @@ public class TaskInfo {
 		this.indexOfSubtask = indexOfSubtask;
 		this.numberOfParallelSubtasks = numberOfParallelSubtasks;
 		this.attemptNumber = attemptNumber;
-		this.taskNameWithSubtasks = taskName + " (" + (indexOfSubtask + 1) + '/' + numberOfParallelSubtasks + ')' + "#" + attemptNumber;
+		this.taskNameWithSubtasks = createTaskNameWithSubtasks(taskName, indexOfSubtask, numberOfParallelSubtasks, attemptNumber);
 		this.allocationIDAsString = checkNotNull(allocationIDAsString);
 	}
 
+	public static String createTaskNameWithSubtasks(String taskName, int indexOfSubtask, int numberOfParallelSubtasks, int attemptNumber) {
+		return taskName + " (" + (indexOfSubtask + 1) + '/' + numberOfParallelSubtasks + ')' + "#" + attemptNumber;
+	}
 	/**
 	 * Returns the name of the task
 	 *

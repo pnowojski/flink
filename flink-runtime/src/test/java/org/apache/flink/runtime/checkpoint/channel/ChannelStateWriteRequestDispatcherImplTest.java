@@ -52,7 +52,8 @@ public class ChannelStateWriteRequestDispatcherImplTest {
 		ChannelStateWriteRequestDispatcher dispatcher = new ChannelStateWriteRequestDispatcherImpl(
 			0,
 			new MemoryBackendCheckpointStorageAccess(new JobID(), null, null, 1),
-			new ChannelStateSerializerImpl());
+			new ChannelStateSerializerImpl(),
+			"Unknown");
 		ChannelStateWriteResult result = new ChannelStateWriteResult();
 		dispatcher.dispatch(ChannelStateWriteRequest.start(1L, result, CheckpointStorageLocationReference.getDefault()));
 

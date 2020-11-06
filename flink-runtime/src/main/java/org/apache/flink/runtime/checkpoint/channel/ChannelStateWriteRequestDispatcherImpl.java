@@ -39,12 +39,18 @@ final class ChannelStateWriteRequestDispatcherImpl implements ChannelStateWriteR
 	private final CheckpointStorageWorkerView streamFactoryResolver;
 	private final ChannelStateSerializer serializer;
 	private final int subtaskIndex;
+	private final String taskName;
 
-	ChannelStateWriteRequestDispatcherImpl(int subtaskIndex, CheckpointStorageWorkerView streamFactoryResolver, ChannelStateSerializer serializer) {
+	ChannelStateWriteRequestDispatcherImpl(
+			int subtaskIndex,
+			CheckpointStorageWorkerView streamFactoryResolver,
+			ChannelStateSerializer serializer,
+			String taskName) {
 		this.subtaskIndex = subtaskIndex;
 		this.writers = new HashMap<>();
 		this.streamFactoryResolver = checkNotNull(streamFactoryResolver);
 		this.serializer = checkNotNull(serializer);
+		this.taskName = checkNotNull(taskName);
 	}
 
 	@Override
@@ -85,7 +91,8 @@ final class ChannelStateWriteRequestDispatcherImpl implements ChannelStateWriteR
 			request,
 			streamFactoryResolver.resolveCheckpointStorageLocation(request.getCheckpointId(), request.getLocationReference()),
 			serializer,
-			() -> writers.remove(request.getCheckpointId()));
+			() -> writers.remove(request.getCheckpointId()),
+			taskName);
 	}
 
 	@Override
