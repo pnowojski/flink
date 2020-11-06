@@ -158,7 +158,7 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
 	private void maybeTriggerCheckpoint(Optional<CheckpointBarrier> barrier) throws IOException {
 		if (barrier.isPresent()) {
 			LOG.debug(
-				"{}: Triggering checkpoint {} on the barrier announcement at {}.",
+				"{}: Triggering checkpoint {} at {}.",
 				taskName,
 				barrier.get().getId(),
 				barrier.get().getTimestamp());

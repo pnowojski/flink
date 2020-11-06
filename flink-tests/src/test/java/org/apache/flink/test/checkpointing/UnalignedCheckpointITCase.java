@@ -157,7 +157,7 @@ public class UnalignedCheckpointITCase extends TestLogger {
 
 	@Test
 	public void shouldPerformUnalignedCheckpointOnParallelLocalChannel() throws Exception {
-		execute(5, 5, true);
+		execute(2, 2, true);
 	}
 
 	@Test
@@ -221,9 +221,9 @@ public class UnalignedCheckpointITCase extends TestLogger {
 
 	private void createDAG(StreamExecutionEnvironment env, long minCheckpoints, boolean slotSharing) {
 		env.fromSource(new LongSource(minCheckpoints, env.getParallelism()), WatermarkStrategy.noWatermarks(), "source")
-			.slotSharingGroup(slotSharing ? "default" : "source")
+//			.slotSharingGroup(slotSharing ? "default" : "source")
 			// shifts records from one partition to another evenly to retain order
-			.partitionCustom(new ShiftingPartitioner(), l -> l)
+//			.partitionCustom(new ShiftingPartitioner(), l -> l)
 			.map(new FailingMapper(state -> state.completedCheckpoints >= minCheckpoints / 4 && state.runNumber == 0
 					|| state.completedCheckpoints >= minCheckpoints * 3 / 4 && state.runNumber == 2,
 				state -> state.completedCheckpoints >= minCheckpoints / 2 && state.runNumber == 1,
@@ -454,6 +454,11 @@ public class UnalignedCheckpointITCase extends TestLogger {
 				ArrayUtils.addAll(args, runtimeContext.getIndexOfThisSubtask(), runtimeContext.getAttemptNumber()));
 	}
 
+	static void warn(RuntimeContext runtimeContext, String description, Object[] args) {
+		LOG.warn(description + " @ {} subtask ({} attempt)",
+			ArrayUtils.addAll(args, runtimeContext.getIndexOfThisSubtask(), runtimeContext.getAttemptNumber()));
+	}
+
 	private static class VerifyingSink extends RichSinkFunction<Long> implements CheckpointedFunction, CheckpointListener {
 		private final LongCounter numOutputCounter = new LongCounter();
 		private final LongCounter outOfOrderCounter = new LongCounter();
@@ -521,15 +526,15 @@ public class UnalignedCheckpointITCase extends TestLogger {
 			long lastRecord = state.lastRecordInPartitions[partition];
 			if (value < lastRecord) {
 				state.numOutOfOrderness++;
-				info("Out of order records current={} and last={}", value, lastRecord);
+				warn("Out of order records current={} and last={}", value, lastRecord);
 			} else if (value == lastRecord) {
 				state.numDuplicates++;
-				info("Duplicate record {}", value);
+				warn("Duplicate record {}", value);
 			} else if (lastRecord != -1) {
 				long expectedValue = lastRecord + parallelism * parallelism;
 				if (value != expectedValue) {
 					state.numLostValues++;
-					info("Lost records {}-{}", expectedValue, value);
+					warn("Lost records {}-{}", expectedValue, value);
 				}
 			}
 			state.lastRecordInPartitions[partition] = value;
@@ -546,6 +551,10 @@ public class UnalignedCheckpointITCase extends TestLogger {
 
 		private void info(String description, Object... args) {
 			UnalignedCheckpointITCase.info(getRuntimeContext(), description, args);
+		}
+
+		private void warn(String description, Object... args) {
+			UnalignedCheckpointITCase.warn(getRuntimeContext(), description, args);
 		}
 
 		private static class State {
