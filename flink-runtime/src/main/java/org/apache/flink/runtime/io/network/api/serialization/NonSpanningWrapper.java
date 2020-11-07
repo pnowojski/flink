@@ -31,6 +31,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.UTFDataFormatException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import static org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult.INTERMEDIATE_RECORD_FROM_BUFFER;
 import static org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult.LAST_RECORD_FROM_BUFFER;
@@ -352,6 +353,7 @@ final class NonSpanningWrapper implements DataInputView {
 	}
 
 	static CloseableIterator<Buffer> singleBufferIterator(MemorySegment target) {
+		System.out.println("singleBufferIterator " + Arrays.toString(target.getArray()));
 		return CloseableIterator.ofElement(
 			new NetworkBuffer(target, FreeingBufferRecycler.INSTANCE, DATA_BUFFER, target.size()),
 			Buffer::recycleBuffer);

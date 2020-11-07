@@ -110,6 +110,7 @@ public class AlternatingController implements CheckpointBarrierBehaviourControll
 			InputChannelInfo channelInfo,
 			CheckpointBarrier barrier) throws IOException {
 		checkState(alignedController == activeController);
+		checkState(barrier.getCheckpointOptions().isUnalignedCheckpoint());
 
 		// timeout all not yet processed barriers for which alignedController has processed an announcement
 		for (Map.Entry<InputChannelInfo, Integer> entry : alignedController.getSequenceNumberInAnnouncedChannels().entrySet()) {

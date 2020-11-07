@@ -189,6 +189,7 @@ final class SpanningWrapper {
 
 	CloseableIterator<Buffer> getUnconsumedSegment() throws IOException {
 		if (isReadingLength()) {
+			System.out.println(String.format("getUnconsumedSegment " + lengthBuffer.toString()));
 			return singleBufferIterator(wrapCopy(lengthBuffer.array(), 0, lengthBuffer.position()));
 		} else if (isAboveSpillingThreshold()) {
 			return createSpilledDataIterator();
