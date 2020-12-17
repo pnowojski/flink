@@ -21,13 +21,16 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringEncoder;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.file.sink.FileSink;
 import org.apache.flink.connector.file.src.FileSource;
 import org.apache.flink.connector.file.src.reader.TextLineInputFormat;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.sink.filesystem.rollingpolicies.DefaultRollingPolicy;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.examples.wordcount.util.CLI;
 import org.apache.flink.streaming.examples.wordcount.util.WordCountData;
 import org.apache.flink.util.Collector;
@@ -74,7 +77,9 @@ public class WordCount {
 
         // Create the execution environment. This is the main entrypoint
         // to building a Flink application.
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration configuration = new Configuration();
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(configuration);
 
         // Apache Flink’s unified approach to stream and batch processing means that a DataStream
         // application executed over bounded input will produce the same final results regardless
@@ -115,7 +120,30 @@ public class WordCount {
 
             text = env.fromSource(builder.build(), WatermarkStrategy.noWatermarks(), "file-input");
         } else {
-            text = env.fromElements(WordCountData.WORDS).name("in-memory-input");
+            System.out.println("Executing WordCount example with default input data set.");
+            System.out.println("Use --input to specify file input.");
+            // get default test text data
+            text =
+                    env.addSource(
+                            new SourceFunction<String>() {
+                                private volatile boolean running = true;
+
+                                @Override
+                                public void run(SourceContext<String> ctx) throws Exception {
+                                    while (running) {
+                                        for (String word : WordCountData.WORDS) {
+                                            synchronized (ctx.getCheckpointLock()) {
+                                                ctx.collect(word);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                @Override
+                                public void cancel() {
+                                    running = false;
+                                }
+                            });
         }
 
         DataStream<Tuple2<String, Integer>> counts =
@@ -151,7 +179,17 @@ public class WordCount {
                                     .build())
                     .name("file-sink");
         } else {
-            counts.print().name("print-sink");
+            System.out.println("Printing result to stdout. Use --output to specify output path.");
+            counts.addSink(
+                    new SinkFunction<Tuple2<String, Integer>>() {
+                        @Override
+                        public void invoke(Tuple2<String, Integer> value, Context context)
+                                throws Exception {
+                            Thread.sleep(1);
+                            // ignore
+                        }
+                    });
+            //			counts.print();
         }
 
         // Apache Flink applications are composed lazily. Calling execute
