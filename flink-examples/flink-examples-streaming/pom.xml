@@ -17,8 +17,9 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
@@ -87,11 +88,17 @@ under the License.
 			<scope>test</scope>
 		</dependency>
 
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-statebackend-rocksdb</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-statebackend-rocksdb</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-runtime-web</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 
 		<!-- Dependencies for MatrixVectorMul. We exclude native libraries
 		because it is not available in all the operating systems and architectures. Moreover,
@@ -120,7 +127,7 @@ under the License.
 			</exclusions>
 		</dependency>
 
-    </dependencies>
+	</dependencies>
 
 	<build>
 		<plugins>
@@ -148,7 +155,8 @@ under the License.
 				<groupId>org.scalastyle</groupId>
 				<artifactId>scalastyle-maven-plugin</artifactId>
 				<configuration>
-					<configLocation>${project.basedir}/../../tools/maven/scalastyle-config.xml</configLocation>
+					<configLocation>${project.basedir}/../../tools/maven/scalastyle-config.xml
+					</configLocation>
 				</configuration>
 			</plugin>
 
@@ -166,7 +174,7 @@ under the License.
 							<goal>test-jar</goal>
 						</goals>
 					</execution>
-					
+
 					<!-- Iteration -->
 					<execution>
 						<id>Iteration</id>
@@ -179,12 +187,15 @@ under the License.
 
 							<archive>
 								<manifestEntries>
-									<program-class>org.apache.flink.streaming.examples.iteration.IterateExample</program-class>
+									<program-class>
+										org.apache.flink.streaming.examples.iteration.IterateExample
+									</program-class>
 								</manifestEntries>
 							</archive>
 
 							<includes>
-								<include>org/apache/flink/streaming/examples/iteration/*.class</include>
+								<include>org/apache/flink/streaming/examples/iteration/*.class
+								</include>
 								<include>META-INF/LICENSE</include>
 								<include>META-INF/NOTICE</include>
 							</includes>
@@ -203,13 +214,17 @@ under the License.
 
 							<archive>
 								<manifestEntries>
-									<program-class>org.apache.flink.streaming.examples.join.WindowJoin</program-class>
+									<program-class>
+										org.apache.flink.streaming.examples.join.WindowJoin
+									</program-class>
 								</manifestEntries>
 							</archive>
 
 							<includes>
 								<include>org/apache/flink/streaming/examples/join/*.class</include>
-								<include>org/apache/flink/streaming/examples/utils/ThrottledIterator.class</include>
+								<include>
+									org/apache/flink/streaming/examples/utils/ThrottledIterator.class
+								</include>
 								<include>META-INF/LICENSE</include>
 								<include>META-INF/NOTICE</include>
 							</includes>
@@ -228,7 +243,9 @@ under the License.
 
 							<archive>
 								<manifestEntries>
-									<program-class>org.apache.flink.streaming.examples.async.AsyncIOExample</program-class>
+									<program-class>
+										org.apache.flink.streaming.examples.async.AsyncIOExample
+									</program-class>
 								</manifestEntries>
 							</archive>
 
@@ -252,15 +269,25 @@ under the License.
 
 							<archive>
 								<manifestEntries>
-									<program-class>org.apache.flink.streaming.examples.wordcount.WordCount</program-class>
+									<program-class>
+										org.apache.flink.streaming.examples.wordcount.WordCount
+									</program-class>
 								</manifestEntries>
 							</archive>
 
 							<includes>
-								<include>org/apache/flink/streaming/examples/wordcount/WordCount.class</include>
-								<include>org/apache/flink/streaming/examples/wordcount/WordCount$*.class</include>
-								<include>org/apache/flink/streaming/examples/wordcount/util/WordCountData.class</include>
-								<include>org/apache/flink/streaming/examples/wordcount/util/CLI.class</include>
+								<include>
+									org/apache/flink/streaming/examples/wordcount/WordCount.class
+								</include>
+								<include>
+									org/apache/flink/streaming/examples/wordcount/WordCount$*.class
+								</include>
+								<include>
+									org/apache/flink/streaming/examples/wordcount/util/WordCountData.class
+								</include>
+								<include>
+									org/apache/flink/streaming/examples/wordcount/util/CLI.class
+								</include>
 								<include>META-INF/LICENSE</include>
 								<include>META-INF/NOTICE</include>
 							</includes>
@@ -279,13 +306,19 @@ under the License.
 
 							<archive>
 								<manifestEntries>
-									<program-class>org.apache.flink.streaming.examples.socket.SocketWindowWordCount</program-class>
+									<program-class>
+										org.apache.flink.streaming.examples.socket.SocketWindowWordCount
+									</program-class>
 								</manifestEntries>
 							</archive>
 
 							<includes>
-								<include>org/apache/flink/streaming/examples/socket/SocketWindowWordCount.class</include>
-								<include>org/apache/flink/streaming/examples/socket/SocketWindowWordCount$*.class</include>
+								<include>
+									org/apache/flink/streaming/examples/socket/SocketWindowWordCount.class
+								</include>
+								<include>
+									org/apache/flink/streaming/examples/socket/SocketWindowWordCount$*.class
+								</include>
 								<include>META-INF/LICENSE</include>
 								<include>META-INF/NOTICE</include>
 							</includes>
@@ -304,15 +337,25 @@ under the License.
 
 							<archive>
 								<manifestEntries>
-									<program-class>org.apache.flink.streaming.examples.windowing.TopSpeedWindowing</program-class>
+									<program-class>
+										org.apache.flink.streaming.examples.windowing.TopSpeedWindowing
+									</program-class>
 								</manifestEntries>
 							</archive>
 
 							<includes>
-								<include>org/apache/flink/streaming/examples/windowing/TopSpeedWindowing.class</include>
-								<include>org/apache/flink/streaming/examples/windowing/TopSpeedWindowing$*.class</include>
-								<include>org/apache/flink/streaming/examples/windowing/util/CarSource.class</include>
-								<include>org/apache/flink/streaming/examples/wordcount/util/CLI.class</include>
+								<include>
+									org/apache/flink/streaming/examples/windowing/TopSpeedWindowing.class
+								</include>
+								<include>
+									org/apache/flink/streaming/examples/windowing/TopSpeedWindowing$*.class
+								</include>
+								<include>
+									org/apache/flink/streaming/examples/windowing/util/CarSource.class
+								</include>
+								<include>
+									org/apache/flink/streaming/examples/wordcount/util/CLI.class
+								</include>
 								<include>META-INF/LICENSE</include>
 								<include>META-INF/NOTICE</include>
 							</includes>
@@ -331,13 +374,19 @@ under the License.
 
 							<archive>
 								<manifestEntries>
-									<program-class>org.apache.flink.streaming.examples.windowing.SessionWindowing</program-class>
+									<program-class>
+										org.apache.flink.streaming.examples.windowing.SessionWindowing
+									</program-class>
 								</manifestEntries>
 							</archive>
 
 							<includes>
-								<include>org/apache/flink/streaming/examples/windowing/SessionWindowing.class</include>
-								<include>org/apache/flink/streaming/examples/windowing/SessionWindowing$*.class</include>
+								<include>
+									org/apache/flink/streaming/examples/windowing/SessionWindowing.class
+								</include>
+								<include>
+									org/apache/flink/streaming/examples/windowing/SessionWindowing$*.class
+								</include>
 								<include>META-INF/LICENSE</include>
 								<include>META-INF/NOTICE</include>
 							</includes>
@@ -369,14 +418,21 @@ under the License.
 								<filter>
 									<artifact>org.apache.flink:*</artifact>
 									<includes>
-										<include>org/apache/flink/streaming/examples/gpu/MatrixVectorMul.class</include>
-										<include>org/apache/flink/streaming/examples/gpu/MatrixVectorMul$*.class</include>
+										<include>
+											org/apache/flink/streaming/examples/gpu/MatrixVectorMul.class
+										</include>
+										<include>
+											org/apache/flink/streaming/examples/gpu/MatrixVectorMul$*.class
+										</include>
 									</includes>
 								</filter>
 							</filters>
 							<transformers>
-								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>org.apache.flink.streaming.examples.gpu.MatrixVectorMul</mainClass>
+								<transformer
+										implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>
+										org.apache.flink.streaming.examples.gpu.MatrixVectorMul
+									</mainClass>
 								</transformer>
 							</transformers>
 						</configuration>
@@ -403,7 +459,7 @@ under the License.
 							</args>
 						</configuration>
 					</execution>
- 
+
 					<!-- Run scala compiler in the process-test-resources phase, so that dependencies on
 						 scala classes can be resolved later in the (Java) test-compile phase -->
 					<execution>
@@ -421,7 +477,7 @@ under the License.
 					</jvmArgs>
 				</configuration>
 			</plugin>
-			
+
 			<!-- Eclipse Integration -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -437,8 +493,10 @@ under the License.
 						<buildcommand>org.scala-ide.sdt.core.scalabuilder</buildcommand>
 					</buildcommands>
 					<classpathContainers>
-						<classpathContainer>org.scala-ide.sdt.launching.SCALA_CONTAINER</classpathContainer>
-						<classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
+						<classpathContainer>org.scala-ide.sdt.launching.SCALA_CONTAINER
+						</classpathContainer>
+						<classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER
+						</classpathContainer>
 					</classpathContainers>
 					<excludes>
 						<exclude>org.scala-lang:scala-library</exclude>
@@ -494,12 +552,18 @@ under the License.
 						<id>rename</id>
 						<configuration>
 							<target>
-								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-Iteration.jar" tofile="${project.basedir}/target/Iteration.jar" />
-								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-SessionWindowing.jar" tofile="${project.basedir}/target/SessionWindowing.jar" />
-								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-TopSpeedWindowing.jar" tofile="${project.basedir}/target/TopSpeedWindowing.jar" />
-								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-WindowJoin.jar" tofile="${project.basedir}/target/WindowJoin.jar" />
-								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-WordCount.jar" tofile="${project.basedir}/target/WordCount.jar" />
-								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-SocketWindowWordCount.jar" tofile="${project.basedir}/target/SocketWindowWordCount.jar" />
+								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-Iteration.jar"
+									  tofile="${project.basedir}/target/Iteration.jar"/>
+								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-SessionWindowing.jar"
+									  tofile="${project.basedir}/target/SessionWindowing.jar"/>
+								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-TopSpeedWindowing.jar"
+									  tofile="${project.basedir}/target/TopSpeedWindowing.jar"/>
+								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-WindowJoin.jar"
+									  tofile="${project.basedir}/target/WindowJoin.jar"/>
+								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-WordCount.jar"
+									  tofile="${project.basedir}/target/WordCount.jar"/>
+								<copy file="${project.basedir}/target/flink-examples-streaming_${scala.binary.version}-${project.version}-SocketWindowWordCount.jar"
+									  tofile="${project.basedir}/target/SocketWindowWordCount.jar"/>
 							</target>
 						</configuration>
 					</execution>

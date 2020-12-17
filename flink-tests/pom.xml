@@ -18,8 +18,9 @@ specific language governing permissions and limitations
 under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
@@ -36,7 +37,7 @@ under the License.
 	<packaging>jar</packaging>
 
 	<dependencies>
-	
+
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-core</artifactId>
@@ -78,7 +79,7 @@ under the License.
 			<artifactId>flink-shaded-jackson</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-common</artifactId>
@@ -99,7 +100,7 @@ under the License.
 			<version>${project.version}</version>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-runtime</artifactId>
@@ -109,11 +110,17 @@ under the License.
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-runtime-web</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-clients</artifactId>
 			<version>${project.version}</version>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-java</artifactId>
@@ -147,7 +154,7 @@ under the License.
 			<version>${project.version}</version>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-examples-batch_${scala.binary.version}</artifactId>
@@ -211,7 +218,7 @@ under the License.
 			<artifactId>scalatest_${scala.binary.version}</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
@@ -245,9 +252,9 @@ under the License.
 			<artifactId>flink-dstl-dfs</artifactId>
 			<version>${project.version}</version>
 			<scope>test</scope>
-        </dependency>
+		</dependency>
 
-        <dependency>
+		<dependency>
 			<groupId>com.github.oshi</groupId>
 			<artifactId>oshi-core</artifactId>
 			<scope>test</scope>
@@ -259,7 +266,7 @@ under the License.
 			<artifactId>reflections</artifactId>
 		</dependency>
 
-    </dependencies>
+	</dependencies>
 
 	<build>
 		<plugins>
@@ -293,7 +300,7 @@ under the License.
 							<goal>compile</goal>
 						</goals>
 					</execution>
- 
+
 					<!-- Run scala compiler in the process-test-resources phase, so that dependencies on
 						 scala classes can be resolved later in the (Java) test-compile phase -->
 					<execution>
@@ -311,7 +318,7 @@ under the License.
 					</jvmArgs>
 				</configuration>
 			</plugin>
-			
+
 			<!-- Eclipse Integration -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -327,8 +334,10 @@ under the License.
 						<buildcommand>org.scala-ide.sdt.core.scalabuilder</buildcommand>
 					</buildcommands>
 					<classpathContainers>
-						<classpathContainer>org.scala-ide.sdt.launching.SCALA_CONTAINER</classpathContainer>
-						<classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
+						<classpathContainer>org.scala-ide.sdt.launching.SCALA_CONTAINER
+						</classpathContainer>
+						<classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER
+						</classpathContainer>
 					</classpathContainers>
 					<excludes>
 						<exclude>org.scala-lang:scala-library</exclude>
@@ -380,10 +389,11 @@ under the License.
 				<groupId>org.scalastyle</groupId>
 				<artifactId>scalastyle-maven-plugin</artifactId>
 				<configuration>
-					<configLocation>${project.basedir}/../tools/maven/scalastyle-config.xml</configLocation>
+					<configLocation>${project.basedir}/../tools/maven/scalastyle-config.xml
+					</configLocation>
 				</configuration>
 			</plugin>
-		
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
@@ -395,7 +405,7 @@ under the License.
 					</execution>
 				</executions>
 			</plugin>
-			
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
@@ -407,9 +417,12 @@ under the License.
 						<exclude>**/*TestBase*.class</exclude>
 					</excludes>
 					<classpathDependencyExcludes>
-						<classpathDependencyExclude>org.apache.curator:curator-recipes</classpathDependencyExclude>
-						<classpathDependencyExclude>org.apache.curator:curator-client</classpathDependencyExclude>
-						<classpathDependencyExclude>org.apache.curator:curator-framework</classpathDependencyExclude>
+						<classpathDependencyExclude>org.apache.curator:curator-recipes
+						</classpathDependencyExclude>
+						<classpathDependencyExclude>org.apache.curator:curator-client
+						</classpathDependencyExclude>
+						<classpathDependencyExclude>org.apache.curator:curator-framework
+						</classpathDependencyExclude>
 					</classpathDependencyExcludes>
 					<!-- We override the fork behaviour for those expensive tests to avoid process
 					kills due to container limits on travis -->
@@ -417,8 +430,8 @@ under the License.
 					<reuseForks>false</reuseForks>
 					<environmentVariables>
 						<!-- Make sure external hadoop environment will not affect maven building -->
-						<HADOOP_HOME />
-						<HADOOP_CONF_DIR />
+						<HADOOP_HOME/>
+						<HADOOP_CONF_DIR/>
 					</environmentVariables>
 				</configuration>
 			</plugin>
@@ -438,7 +451,8 @@ under the License.
 							<finalName>plugin-a</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-plugin-a-assembly.xml</descriptor>
+								<descriptor>src/test/assembly/test-plugin-a-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -453,7 +467,8 @@ under the License.
 							<finalName>plugin-b</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-plugin-b-assembly.xml</descriptor>
+								<descriptor>src/test/assembly/test-plugin-b-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -467,7 +482,9 @@ under the License.
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>org.apache.flink.test.classloading.jar.KMeansForTest</mainClass>
+									<mainClass>
+										org.apache.flink.test.classloading.jar.KMeansForTest
+									</mainClass>
 								</manifest>
 							</archive>
 							<finalName>kmeans</finalName>
@@ -486,13 +503,15 @@ under the License.
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>org.apache.flink.test.classloading.jar.UserCodeType</mainClass>
+									<mainClass>org.apache.flink.test.classloading.jar.UserCodeType
+									</mainClass>
 								</manifest>
 							</archive>
 							<finalName>usercodetype</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-usercodetype-assembly.xml</descriptor>
+								<descriptor>src/test/assembly/test-usercodetype-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -505,13 +524,16 @@ under the License.
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>org.apache.flink.test.classloading.jar.CustomInputSplitProgram</mainClass>
+									<mainClass>
+										org.apache.flink.test.classloading.jar.CustomInputSplitProgram
+									</mainClass>
 								</manifest>
 							</archive>
 							<finalName>customsplit</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-custominput-assembly.xml</descriptor>
+								<descriptor>src/test/assembly/test-custominput-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -524,13 +546,17 @@ under the License.
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>org.apache.flink.test.classloading.jar.StreamingCustomInputSplitProgram</mainClass>
+									<mainClass>
+										org.apache.flink.test.classloading.jar.StreamingCustomInputSplitProgram
+									</mainClass>
 								</manifest>
 							</archive>
 							<finalName>streaming-customsplit</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-streaming-custominput-assembly.xml</descriptor>
+								<descriptor>
+									src/test/assembly/test-streaming-custominput-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -543,13 +569,17 @@ under the License.
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>org.apache.flink.test.classloading.jar.StreamingProgram</mainClass>
+									<mainClass>
+										org.apache.flink.test.classloading.jar.StreamingProgram
+									</mainClass>
 								</manifest>
 							</archive>
 							<finalName>streamingclassloader</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-streamingclassloader-assembly.xml</descriptor>
+								<descriptor>
+									src/test/assembly/test-streamingclassloader-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -562,13 +592,17 @@ under the License.
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>org.apache.flink.test.classloading.jar.CheckpointedStreamingProgram</mainClass>
+									<mainClass>
+										org.apache.flink.test.classloading.jar.CheckpointedStreamingProgram
+									</mainClass>
 								</manifest>
 							</archive>
 							<finalName>streaming-checkpointed-classloader</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-streaming-state-checkpointed-classloader-assembly.xml</descriptor>
+								<descriptor>
+									src/test/assembly/test-streaming-state-checkpointed-classloader-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -581,13 +615,16 @@ under the License.
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>org.apache.flink.test.classloading.jar.CustomKvStateProgram</mainClass>
+									<mainClass>
+										org.apache.flink.test.classloading.jar.CustomKvStateProgram
+									</mainClass>
 								</manifest>
 							</archive>
 							<finalName>custom_kv_state</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-custom_kv_state-assembly.xml</descriptor>
+								<descriptor>src/test/assembly/test-custom_kv_state-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -600,13 +637,17 @@ under the License.
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>org.apache.flink.test.classloading.jar.CheckpointingCustomKvStateProgram</mainClass>
+									<mainClass>
+										org.apache.flink.test.classloading.jar.CheckpointingCustomKvStateProgram
+									</mainClass>
 								</manifest>
 							</archive>
 							<finalName>checkpointing_custom_kv_state</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-checkpointing-custom_kv_state-assembly.xml</descriptor>
+								<descriptor>
+									src/test/assembly/test-checkpointing-custom_kv_state-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -619,13 +660,17 @@ under the License.
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>org.apache.flink.test.classloading.jar.ClassLoadingPolicyProgram</mainClass>
+									<mainClass>
+										org.apache.flink.test.classloading.jar.ClassLoadingPolicyProgram
+									</mainClass>
 								</manifest>
 							</archive>
 							<finalName>classloading_policy</finalName>
 							<attach>false</attach>
 							<descriptors>
-								<descriptor>src/test/assembly/test-classloading_policy-assembly.xml</descriptor>
+								<descriptor>
+									src/test/assembly/test-classloading_policy-assembly.xml
+								</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
