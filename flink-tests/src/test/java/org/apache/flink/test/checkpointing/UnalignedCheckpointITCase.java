@@ -99,15 +99,18 @@ public class UnalignedCheckpointITCase extends UnalignedCheckpointTestBase {
     @Parameterized.Parameters(name = "{0}")
     public static Object[][] parameters() {
         return new Object[][] {
-            new Object[] {
-                "non-parallel pipeline with local channels", createPipelineSettings(1, 1, true)
-            },
-            new Object[] {
-                "non-parallel pipeline with remote channels", createPipelineSettings(1, 1, false)
-            },
-            new Object[] {
-                "parallel pipeline with local channels, p = 5", createPipelineSettings(5, 5, true)
-            },
+            //            new Object[] {
+            //                "non-parallel pipeline with local channels", createPipelineSettings(1,
+            // 1, true)
+            //            },
+            //            new Object[] {
+            //                "non-parallel pipeline with remote channels",
+            // createPipelineSettings(1, 1, false)
+            //            },
+            //            new Object[] {
+            //                "parallel pipeline with local channels, p = 5",
+            // createPipelineSettings(5, 5, true)
+            //            },
             new Object[] {
                 "parallel pipeline with remote channels, p = 5", createPipelineSettings(5, 1, false)
             },
@@ -118,10 +121,10 @@ public class UnalignedCheckpointITCase extends UnalignedCheckpointTestBase {
                 "parallel pipeline with mixed channels, p = 20",
                 createPipelineSettings(20, 10, true)
             },
-            new Object[] {
-                "parallel pipeline with mixed channels, p = 20, timeout=1",
-                createPipelineSettings(20, 10, true, 1)
-            },
+            //            new Object[] {
+            //                "parallel pipeline with mixed channels, p = 20, timeout=1",
+            //                createPipelineSettings(20, 10, true, 1)
+            //            },
             new Object[] {"Parallel cogroup, p = 5", createCogroupSettings(5)},
             new Object[] {"Parallel cogroup, p = 10", createCogroupSettings(10)},
             new Object[] {"Parallel union, p = 5", createUnionSettings(5)},
