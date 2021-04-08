@@ -128,6 +128,7 @@ public class UnalignedCheckpointStressITCase extends TestLogger {
                                 .build());
         cluster.before();
 
+        System.out.println("??????????????????????" + cluster.getRestAddres());
         FileUtils.cleanDirectory(temporaryFolder.getRoot());
     }
 
