@@ -94,7 +94,7 @@ public class UnalignedCheckpointStressITCase extends TestLogger {
     protected static final int CHECKPOINT_INTERVAL = 20;
     protected static final int MINIMUM_COMPLETED_CHECKPOINTS_BETWEEN_FAILURES = 2;
     protected static final int MAXIMUM_COMPLETED_CHECKPOINTS_BETWEEN_FAILURES = 10;
-    protected static final long TEST_DURATION = Time.minutes(1).toMilliseconds();
+    protected static final long TEST_DURATION = Time.hours(12).toMilliseconds();
     protected static final int NUM_TASK_MANAGERS = 3;
     protected static final int NUM_TASK_SLOTS = 2;
     protected static final int PARALLELISM = NUM_TASK_MANAGERS * NUM_TASK_SLOTS;
