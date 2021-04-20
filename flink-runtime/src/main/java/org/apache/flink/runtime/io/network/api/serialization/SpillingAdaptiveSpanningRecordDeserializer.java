@@ -30,6 +30,7 @@ import java.io.IOException;
 import static org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult.INTERMEDIATE_RECORD_FROM_BUFFER;
 import static org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult.LAST_RECORD_FROM_BUFFER;
 import static org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult.PARTIAL_RECORD;
+import static org.apache.flink.util.Preconditions.checkState;
 
 /** @param <T> The type of the record to be deserialized. */
 public class SpillingAdaptiveSpanningRecordDeserializer<T extends IOReadableWritable>
@@ -64,6 +65,7 @@ public class SpillingAdaptiveSpanningRecordDeserializer<T extends IOReadableWrit
     @Override
     public void setNextBuffer(Buffer buffer) throws IOException {
         currentBuffer = buffer;
+        checkState(!currentBuffer.isRecycled());
 
         int offset = buffer.getMemorySegmentOffset();
         MemorySegment segment = buffer.getMemorySegment();
@@ -90,6 +92,7 @@ public class SpillingAdaptiveSpanningRecordDeserializer<T extends IOReadableWrit
         // this should be the majority of the cases for small records
         // for large records, this portion of the work is very small in comparison anyways
 
+        checkState(!currentBuffer.isRecycled());
         final DeserializationResult result = readNextRecord(target);
         if (result.isBufferConsumed()) {
             currentBuffer.recycleBuffer();
