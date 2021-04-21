@@ -20,6 +20,7 @@ package org.apache.flink.runtime.io.network.buffer;
 
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.core.memory.MemorySegment;
+import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.io.network.buffer.BufferListener.NotificationResult;
 import org.apache.flink.util.ExceptionUtils;
 
@@ -479,7 +480,10 @@ class LocalBufferPool implements BufferPool {
                 } else {
                     listener = registeredListeners.poll();
                     if (listener == null) {
-                        availableMemorySegments.add(segment);
+                        segment.free();
+                        availableMemorySegments.add(
+                                MemorySegmentFactory.allocateUnpooledOffHeapMemory(
+                                        segment.size(), null));
                         // only need to check unavailableSubpartitionsCount here because
                         // availableMemorySegments is not empty
                         if (!availabilityHelper.isApproximatelyAvailable()

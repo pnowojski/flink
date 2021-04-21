@@ -254,7 +254,12 @@ public class NetworkBufferPool
             if (availableMemorySegments.isEmpty() && !segments.isEmpty()) {
                 toNotify = availabilityHelper.getUnavailableToResetAvailable();
             }
-            availableMemorySegments.addAll(segments);
+            for (MemorySegment segment : segments) {
+                segment.free();
+                availableMemorySegments.add(
+                        MemorySegmentFactory.allocateUnpooledOffHeapMemory(
+                                memorySegmentSize, null));
+            }
             availableMemorySegments.notifyAll();
         }
 
