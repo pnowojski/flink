@@ -190,7 +190,7 @@ public class DataStreamAllroundTestJobFactory {
                     .defaultValue(0);
 
     private static final ConfigOption<Integer> ENVIRONMENT_PARALLELISM =
-            ConfigOptions.key("environment.parallelism").intType().defaultValue(1);
+            ConfigOptions.key("environment.parallelism").intType().defaultValue(4);
 
     private static final ConfigOption<Integer> ENVIRONMENT_MAX_PARALLELISM =
             ConfigOptions.key("environment.max_parallelism").intType().defaultValue(128);
@@ -266,10 +266,10 @@ public class DataStreamAllroundTestJobFactory {
 
     public static void setupEnvironment(StreamExecutionEnvironment env, ParameterTool pt)
             throws Exception {
-        setupCheckpointing(env, pt);
+        //        setupCheckpointing(env, pt);
         setupParallelism(env, pt);
         setupRestartStrategy(env, pt);
-        setupStateBackend(env, pt);
+        //        setupStateBackend(env, pt);
 
         // make parameters available in the web interface
         env.getConfig().setGlobalJobParameters(pt);
