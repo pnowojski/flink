@@ -23,7 +23,7 @@ public enum TestOperatorEnum {
     EVENT_SOURCE("EventSource", 1),
     KEYED_STATE_OPER_WITH_KRYO_AND_CUSTOM_SER(
             "ArtificalKeyedStateMapper_Kryo_and_Custom_Stateful", 2),
-    KEYED_STATE_OPER_WITH_AVRO_SER("ArtificalKeyedStateMapper_Avro", 3),
+    KEYED_STATE_OPER_WITH_AVRO_SER("KeyedMapper", 3),
     OPERATOR_STATE_OPER("ArtificalOperatorStateMapper", 4),
     TIME_WINDOW_OPER("TumblingWindowOperator", 5),
     FAILURE_MAPPER_NAME("FailureMapper", 6),
