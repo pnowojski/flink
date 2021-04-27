@@ -23,14 +23,13 @@ import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.runtime.kryo.KryoSerializer;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.avro.typeutils.AvroSerializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.PrintSinkFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.streaming.tests.artificialstate.ComplexPayload;
-import org.apache.flink.streaming.tests.artificialstate.StatefulComplexPayloadSerializer;
 import org.apache.flink.streaming.tests.avro.ComplexPayloadAvro;
 import org.apache.flink.streaming.tests.avro.InnerPayLoadAvro;
 import org.apache.flink.util.Collector;
@@ -55,7 +54,6 @@ import static org.apache.flink.streaming.tests.DataStreamAllroundTestJobFactory.
 import static org.apache.flink.streaming.tests.TestOperatorEnum.EVENT_SOURCE;
 import static org.apache.flink.streaming.tests.TestOperatorEnum.FAILURE_MAPPER_NAME;
 import static org.apache.flink.streaming.tests.TestOperatorEnum.KEYED_STATE_OPER_WITH_AVRO_SER;
-import static org.apache.flink.streaming.tests.TestOperatorEnum.KEYED_STATE_OPER_WITH_KRYO_AND_CUSTOM_SER;
 import static org.apache.flink.streaming.tests.TestOperatorEnum.OPERATOR_STATE_OPER;
 import static org.apache.flink.streaming.tests.TestOperatorEnum.SEMANTICS_CHECK_MAPPER;
 import static org.apache.flink.streaming.tests.TestOperatorEnum.SEMANTICS_CHECK_PRINT_SINK;
@@ -85,8 +83,8 @@ public class DataStreamAllroundTestProgram {
     public static void main(String[] args) throws Exception {
         final ParameterTool pt = ParameterTool.fromArgs(args);
 
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
         setupEnvironment(env, pt);
 
         // add a keyed stateful map operator, which uses Kryo for state serialization
@@ -94,50 +92,7 @@ public class DataStreamAllroundTestProgram {
                 env.addSource(createEventSource(pt))
                         .name(EVENT_SOURCE.getName())
                         .uid(EVENT_SOURCE.getUid())
-                        .assignTimestampsAndWatermarks(createTimestampExtractor(pt))
-                        .keyBy(Event::getKey)
-                        .map(
-                                createArtificialKeyedStateMapper(
-                                        // map function simply forwards the inputs
-                                        (MapFunction<Event, Event>) in -> in,
-                                        // state is verified and updated per event as a wrapped
-                                        // ComplexPayload state object
-                                        (Event event, ComplexPayload lastState) -> {
-                                            if (lastState != null
-                                                    && !lastState
-                                                            .getStrPayload()
-                                                            .equals(
-                                                                    KEYED_STATE_OPER_WITH_KRYO_AND_CUSTOM_SER
-                                                                            .getName())
-                                                    && lastState
-                                                                    .getInnerPayLoad()
-                                                                    .getSequenceNumber()
-                                                            == (event.getSequenceNumber() - 1)) {
-                                                throwIncorrectRestoredStateException(
-                                                        (event.getSequenceNumber() - 1),
-                                                        KEYED_STATE_OPER_WITH_KRYO_AND_CUSTOM_SER
-                                                                .getName(),
-                                                        lastState.getStrPayload());
-                                            }
-                                            return new ComplexPayload(
-                                                    event,
-                                                    KEYED_STATE_OPER_WITH_KRYO_AND_CUSTOM_SER
-                                                            .getName());
-                                        },
-                                        Arrays.asList(
-                                                new KryoSerializer<>(
-                                                        ComplexPayload.class,
-                                                        env.getConfig()), // KryoSerializer
-                                                new StatefulComplexPayloadSerializer()), // custom
-                                        // stateful
-                                        // serializer
-                                        Collections.singletonList(
-                                                ComplexPayload.class) // KryoSerializer via type
-                                        // extraction
-                                        ))
-                        .returns(Event.class)
-                        .name(KEYED_STATE_OPER_WITH_KRYO_AND_CUSTOM_SER.getName())
-                        .uid(KEYED_STATE_OPER_WITH_KRYO_AND_CUSTOM_SER.getUid());
+                        .assignTimestampsAndWatermarks(createTimestampExtractor(pt));
 
         // add a keyed stateful map operator, which uses Avro for state serialization
         eventStream =
