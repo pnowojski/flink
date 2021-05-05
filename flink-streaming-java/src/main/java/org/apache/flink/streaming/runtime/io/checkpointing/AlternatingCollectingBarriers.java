@@ -35,7 +35,7 @@ final class AlternatingCollectingBarriers extends AbstractAlternatingAlignedBarr
             Controller controller, CheckpointBarrier checkpointBarrier)
             throws IOException, CheckpointException {
         state.prioritizeAllAnnouncements();
-        state.unblockAllChannels();
+        //        state.unblockAllChannels();
         CheckpointBarrier unalignedBarrier = checkpointBarrier.asUnaligned();
         controller.initInputsCheckpoint(unalignedBarrier);
         for (CheckpointableInput input : state.getInputs()) {
