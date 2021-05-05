@@ -59,16 +59,11 @@ final class CollectingBarriersUnaligned implements BarrierHandlerState {
             throws CheckpointException, IOException {
         // we received an out of order aligned barrier, we should resume consumption for the
         // channel, as it is being blocked by the credit-based network
-        //        if (!checkpointBarrier.getCheckpointOptions().isUnalignedCheckpoint()) {
-        //            inputs[channelInfo.getGateIdx()].resumeConsumption(channelInfo);
-        //        }
+        if (!checkpointBarrier.getCheckpointOptions().isUnalignedCheckpoint()) {
+            inputs[channelInfo.getGateIdx()].resumeConsumption(channelInfo);
+        }
 
         if (controller.allBarriersReceived()) {
-            for (CheckpointableInput input : inputs) {
-                for (InputChannelInfo info : input.getChannelInfos()) {
-                    input.resumeConsumption(info);
-                }
-            }
             return stopCheckpoint(checkpointBarrier.getId());
         }
         return this;
