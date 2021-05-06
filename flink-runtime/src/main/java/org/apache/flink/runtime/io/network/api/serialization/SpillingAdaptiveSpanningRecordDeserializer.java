@@ -26,6 +26,7 @@ import org.apache.flink.util.CloseableIterator;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 
 import static org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult.INTERMEDIATE_RECORD_FROM_BUFFER;
 import static org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer.DeserializationResult.LAST_RECORD_FROM_BUFFER;
@@ -61,6 +62,8 @@ public class SpillingAdaptiveSpanningRecordDeserializer<T extends IOReadableWrit
                         Math.max(fileBufferSize, MIN_FILE_BUFFER_SIZE));
     }
 
+    private ArrayDeque<Integer> bufferSizes = new ArrayDeque<>(100);
+
     @Override
     public void setNextBuffer(Buffer buffer) throws IOException {
         currentBuffer = buffer;
@@ -68,6 +71,13 @@ public class SpillingAdaptiveSpanningRecordDeserializer<T extends IOReadableWrit
         int offset = buffer.getMemorySegmentOffset();
         MemorySegment segment = buffer.getMemorySegment();
         int numBytes = buffer.getSize();
+        //        bufferSizes.add(numBytes);
+        //        while (bufferSizes.size() > 1000) {
+        //            bufferSizes.poll();
+        //        }
+        //        System.out.println(
+        //                "setNextBuffer.getSize() = "
+        //                        + bufferSizes.stream().mapToInt(v -> v).average().getAsDouble());
 
         // check if some spanning record deserialization is pending
         if (spanningWrapper.getNumGatheredBytes() > 0) {
