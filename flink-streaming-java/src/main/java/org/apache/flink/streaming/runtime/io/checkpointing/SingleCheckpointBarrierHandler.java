@@ -277,13 +277,28 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
     }
 
     private void registerAlignmentTimer(CheckpointBarrier announcedBarrier) {
+        System.out.println(
+                System.currentTimeMillis() + " registering timer for [" + announcedBarrier + "]");
         this.currentAlignmentTimer =
                 registerTimer.apply(
                         () -> {
                             long barrierId = announcedBarrier.getId();
+                            System.out.println(
+                                    String.format(
+                                            "%s firing timer. currentCheckpointId = %s, barrierId = %s, done = %s ",
+                                            System.currentTimeMillis(),
+                                            currentCheckpointId,
+                                            barrierId,
+                                            !getAllBarriersReceivedFuture(barrierId).isDone()));
+
                             try {
                                 if (currentCheckpointId == barrierId
                                         && !getAllBarriersReceivedFuture(barrierId).isDone()) {
+                                    System.out.println(
+                                            System.currentTimeMillis()
+                                                    + " timeout for ["
+                                                    + announcedBarrier
+                                                    + "]");
                                     currentState =
                                             currentState.alignmentTimeout(
                                                     context, announcedBarrier);

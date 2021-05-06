@@ -1254,6 +1254,14 @@ public class CheckpointCoordinator {
                 completedCheckpoint.getStateSize(),
                 completedCheckpoint.getDuration());
 
+        System.err.println(
+                String.format(
+                        "Completed checkpoint %s for job %s (%s bytes in %s ms).",
+                        checkpointId,
+                        job,
+                        completedCheckpoint.getStateSize(),
+                        completedCheckpoint.getDuration()));
+
         if (LOG.isDebugEnabled()) {
             StringBuilder builder = new StringBuilder();
             builder.append("Checkpoint state: ");
