@@ -39,8 +39,10 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
@@ -194,6 +196,7 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
     public void processBarrier(CheckpointBarrier barrier, InputChannelInfo channelInfo)
             throws IOException {
         long barrierId = barrier.getId();
+        debug("processBarrier(%s)", channelInfo);
         LOG.debug("{}: Received barrier from channel {} @ {}.", taskName, channelInfo, barrierId);
 
         if (currentCheckpointId > barrierId
@@ -255,6 +258,7 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
     public void processBarrierAnnouncement(
             CheckpointBarrier announcedBarrier, int sequenceNumber, InputChannelInfo channelInfo)
             throws IOException {
+        debug("processBarrierAnnouncement(%s)", channelInfo);
         if (checkNewCheckpoint(announcedBarrier)) {
             firstBarrierArrivalTime = getClock().relativeTimeNanos();
             if (alternating) {
@@ -276,29 +280,32 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
         currentState = currentState.announcementReceived(context, channelInfo, sequenceNumber);
     }
 
-    private void registerAlignmentTimer(CheckpointBarrier announcedBarrier) {
+    public void debug(String format, Object... args) {
         System.out.println(
-                System.currentTimeMillis() + " registering timer for [" + announcedBarrier + "]");
+                new SimpleDateFormat("mm:ss.SSS").format(new Date())
+                        + " "
+                        + taskName
+                        + " "
+                        + String.format(format, args));
+    }
+
+    private void registerAlignmentTimer(CheckpointBarrier announcedBarrier) {
+        // debug("registering timer for [%s]", announcedBarrier);
         this.currentAlignmentTimer =
                 registerTimer.apply(
                         () -> {
                             long barrierId = announcedBarrier.getId();
-                            System.out.println(
-                                    String.format(
-                                            "%s firing timer. currentCheckpointId = %s, barrierId = %s, done = %s ",
-                                            System.currentTimeMillis(),
-                                            currentCheckpointId,
-                                            barrierId,
-                                            !getAllBarriersReceivedFuture(barrierId).isDone()));
+                            // debug(
+                            //        "firing timer. currentCheckpointId = %s, barrierId = %s, done
+                            // = %s ",
+                            //        currentCheckpointId,
+                            //        barrierId,
+                            //        !getAllBarriersReceivedFuture(barrierId).isDone());
 
                             try {
                                 if (currentCheckpointId == barrierId
                                         && !getAllBarriersReceivedFuture(barrierId).isDone()) {
-                                    System.out.println(
-                                            System.currentTimeMillis()
-                                                    + " timeout for ["
-                                                    + announcedBarrier
-                                                    + "]");
+                                    debug("timeout for [%s]", announcedBarrier);
                                     currentState =
                                             currentState.alignmentTimeout(
                                                     context, announcedBarrier);
