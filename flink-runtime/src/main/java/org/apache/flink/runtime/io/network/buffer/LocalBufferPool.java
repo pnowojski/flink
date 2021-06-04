@@ -319,9 +319,14 @@ class LocalBufferPool implements BufferPool {
         MemorySegment segment;
         while ((segment = requestMemorySegment(targetChannel)) == null) {
             try {
-                LOG.debug("Blocking wait for an available buffer.");
+                long startTs = System.currentTimeMillis();
                 // wait until available
                 getAvailableFuture().get();
+                long duration = System.currentTimeMillis() - startTs;
+                LOG.error(
+                        "Blocking wait [{} ms] for an available buffer.",
+                        duration,
+                        new Exception("Stracktracegenerator"));
             } catch (ExecutionException e) {
                 LOG.error("The available future is completed exceptionally.", e);
                 ExceptionUtils.rethrow(e);
