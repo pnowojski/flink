@@ -319,6 +319,7 @@ class LocalBufferPool implements BufferPool {
         MemorySegment segment;
         while ((segment = requestMemorySegment(targetChannel)) == null) {
             try {
+                LOG.debug("Blocking wait for an available buffer.");
                 // wait until available
                 getAvailableFuture().get();
             } catch (ExecutionException e) {
