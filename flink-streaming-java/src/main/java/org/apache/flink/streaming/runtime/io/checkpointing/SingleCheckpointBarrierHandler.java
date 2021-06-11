@@ -194,7 +194,11 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
     public void processBarrier(CheckpointBarrier barrier, InputChannelInfo channelInfo)
             throws IOException {
         long barrierId = barrier.getId();
-        LOG.debug("{}: Received barrier from channel {} @ {}.", taskName, channelInfo, barrierId);
+        LOG.debug(
+                "{}: Received barrier from channel {} @ checkpoint {}.",
+                taskName,
+                channelInfo,
+                barrierId);
 
         if (currentCheckpointId > barrierId
                 || (currentCheckpointId == barrierId && !isCheckpointPending())) {
@@ -271,6 +275,11 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
                     channelInfo);
             return;
         }
+        LOG.debug(
+                "{}: Received announcement of checkpoint {} for channel {}.",
+                taskName,
+                barrierId,
+                channelInfo);
 
         currentState = currentState.announcementReceived(context, channelInfo, sequenceNumber);
     }
@@ -319,7 +328,7 @@ public class SingleCheckpointBarrierHandler extends CheckpointBarrierHandler {
         final long cancelledId = cancelBarrier.getCheckpointId();
         if (cancelledId > currentCheckpointId
                 || (cancelledId == currentCheckpointId && numBarriersReceived > 0)) {
-            LOG.debug("{}: Received cancellation {}.", taskName, cancelledId);
+            LOG.debug("{}: Received cancellation for checkpoint {}.", taskName, cancelledId);
             abortInternal(
                     cancelledId,
                     new CheckpointException(
