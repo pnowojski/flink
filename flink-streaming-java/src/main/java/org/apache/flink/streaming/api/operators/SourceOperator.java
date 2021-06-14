@@ -42,19 +42,24 @@ import org.apache.flink.runtime.operators.coordination.OperatorEventHandler;
 import org.apache.flink.runtime.source.event.AddSplitEvent;
 import org.apache.flink.runtime.source.event.NoMoreSplitsEvent;
 import org.apache.flink.runtime.source.event.ReaderRegistrationEvent;
+import org.apache.flink.runtime.source.event.ReportedWatermarkEvent;
 import org.apache.flink.runtime.source.event.RequestSplitEvent;
 import org.apache.flink.runtime.source.event.SourceEventWrapper;
+import org.apache.flink.runtime.source.event.WatermarkAlignmentEvent;
 import org.apache.flink.runtime.state.StateInitializationContext;
 import org.apache.flink.runtime.state.StateSnapshotContext;
 import org.apache.flink.streaming.api.graph.StreamConfig;
 import org.apache.flink.streaming.api.operators.source.TimestampsAndWatermarks;
 import org.apache.flink.streaming.api.operators.util.SimpleVersionedListState;
+import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.io.DataInputStatus;
 import org.apache.flink.streaming.runtime.io.MultipleFuturesAvailabilityHelper;
 import org.apache.flink.streaming.runtime.io.PushingAsyncDataInput;
+import org.apache.flink.streaming.runtime.streamrecord.LatencyMarker;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.runtime.tasks.StreamTask;
+import org.apache.flink.streaming.runtime.watermarkstatus.WatermarkStatus;
 import org.apache.flink.util.CollectionUtil;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.UserCodeClassLoader;
@@ -155,6 +160,12 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
 
     private InternalSourceReaderMetricGroup sourceMetricGroup;
 
+    private WatermarkTrackingOutput<OUT> watermarkTrackingOutput;
+    private long currentMaxDesiredWatermark = Watermark.MAX_WATERMARK.getTimestamp();
+    private CompletableFuture<Void> waitingForAlignmentFuture = new CompletableFuture<>();
+
+    private final long maxWatemarkUpdateInterval = 1000;
+
     private @Nullable LatencyMarkerEmitter<OUT> latencyMarerEmitter;
 
     public SourceOperator(
@@ -177,6 +188,9 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         this.localHostname = checkNotNull(localHostname);
         this.emitProgressiveWatermarks = emitProgressiveWatermarks;
         this.operatingMode = OperatingMode.OUTPUT_NOT_INITIALIZED;
+
+        timeService.scheduleWithFixedDelay(
+                this::emitLatestWatermark, maxWatemarkUpdateInterval, maxWatemarkUpdateInterval);
     }
 
     @Override
@@ -362,6 +376,12 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         // short circuit the hot path. Without this short circuit (READING handled in the
         // switch/case) InputBenchmark.mapSink was showing a performance regression.
         if (operatingMode == OperatingMode.READING) {
+            if (isWaitingForAlignment()) {
+                // other partitions are lagging behind, so do not return anything
+                waitingForAlignmentFuture.complete(null);
+                waitingForAlignmentFuture = new CompletableFuture<>();
+                return convertToInternalStatus(InputStatus.NOTHING_AVAILABLE);
+            }
             return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
         }
         return emitNextNotReading(output);
@@ -370,7 +390,8 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
     private DataInputStatus emitNextNotReading(DataOutput<OUT> output) throws Exception {
         switch (operatingMode) {
             case OUTPUT_NOT_INITIALIZED:
-                currentMainOutput = eventTimeLogic.createMainOutput(output);
+                watermarkTrackingOutput = new WatermarkTrackingOutput<>(output);
+                currentMainOutput = eventTimeLogic.createMainOutput(watermarkTrackingOutput);
                 initializeLatencyMarkerEmitter(output);
                 lastInvokedOutput = output;
                 this.operatingMode = OperatingMode.READING;
@@ -428,6 +449,11 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         }
     }
 
+    private void emitLatestWatermark(long time) {
+        operatorEventGateway.sendEventToCoordinator(
+                new ReportedWatermarkEvent(watermarkTrackingOutput.getLastWatermark()));
+    }
+
     @Override
     public void snapshotState(StateSnapshotContext context) throws Exception {
         long checkpointId = context.getCheckpointId();
@@ -440,6 +466,9 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         switch (operatingMode) {
             case OUTPUT_NOT_INITIALIZED:
             case READING:
+                if (watermarkTrackingOutput != null && isWaitingForAlignment()) {
+                    return waitingForAlignmentFuture;
+                }
                 return availabilityHelper.update(sourceReader.isAvailable());
             case SOURCE_STOPPED:
             case SOURCE_DRAINED:
@@ -448,6 +477,10 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
             default:
                 throw new IllegalStateException("Unknown operating mode: " + operatingMode);
         }
+    }
+
+    private boolean isWaitingForAlignment() {
+        return currentMaxDesiredWatermark < watermarkTrackingOutput.getLastWatermark();
     }
 
     @Override
@@ -472,7 +505,10 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
 
     @SuppressWarnings("unchecked")
     public void handleOperatorEvent(OperatorEvent event) {
-        if (event instanceof AddSplitEvent) {
+        if (event instanceof WatermarkAlignmentEvent) {
+            currentMaxDesiredWatermark = ((WatermarkAlignmentEvent) event).getMaxWatermark();
+            waitingForAlignmentFuture.complete(null);
+        } else if (event instanceof AddSplitEvent) {
             try {
                 sourceReader.addSplits(((AddSplitEvent<SplitT>) event).splits(splitSerializer));
             } catch (IOException e) {
@@ -527,6 +563,40 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
 
         public void forceStop() {
             forcedStopFuture.complete(null);
+        }
+    }
+
+    private static class WatermarkTrackingOutput<OUT> implements DataOutput<OUT> {
+        private final DataOutput<OUT> output;
+        private long lastWatermark;
+
+        public WatermarkTrackingOutput(DataOutput<OUT> output) {
+            this.output = output;
+        }
+
+        public long getLastWatermark() {
+            return lastWatermark;
+        }
+
+        @Override
+        public void emitRecord(StreamRecord<OUT> streamRecord) throws Exception {
+            output.emitRecord(streamRecord);
+        }
+
+        @Override
+        public void emitWatermark(Watermark watermark) throws Exception {
+            output.emitWatermark(watermark);
+            lastWatermark = watermark.getTimestamp();
+        }
+
+        @Override
+        public void emitWatermarkStatus(WatermarkStatus watermarkStatus) throws Exception {
+            output.emitWatermarkStatus(watermarkStatus);
+        }
+
+        @Override
+        public void emitLatencyMarker(LatencyMarker latencyMarker) throws Exception {
+            output.emitLatencyMarker(latencyMarker);
         }
     }
 }
