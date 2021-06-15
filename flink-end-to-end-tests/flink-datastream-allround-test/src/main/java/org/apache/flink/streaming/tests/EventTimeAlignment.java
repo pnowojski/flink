@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,41 +16,30 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.base.source.reader;
+package org.apache.flink.streaming.tests;
 
-import org.apache.flink.api.common.accumulators.ListAccumulator;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
-import org.apache.flink.api.connector.source.Boundedness;
-import org.apache.flink.api.connector.source.Source;
 import org.apache.flink.api.connector.source.lib.NumberSequenceSource;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.base.source.reader.mocks.MockBaseSource;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.windowing.ProcessAllWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.test.util.AbstractTestBase;
 import org.apache.flink.util.Collector;
 
-import org.junit.Test;
+/** A simple job that's inducing event time mis-alignment. */
+public class EventTimeAlignment {
+    public static void main(String[] args) throws Exception {
+        final ParameterTool pt = ParameterTool.fromArgs(args);
 
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-
-/** IT case for the {@link Source} with a coordinator. */
-public class CoordinatedSourceITCase extends AbstractTestBase {
-
-    @Test
-    public void testAlignment() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
         env.getConfig().setAutoWatermarkInterval(2000);
         env.setParallelism(2);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(Integer.MAX_VALUE, 10));
@@ -95,53 +84,8 @@ public class CoordinatedSourceITCase extends AbstractTestBase {
         private long counter = 0;
 
         @Override
-        public long extractTimestamp(Long record, long recordTimeStamp) {
+        public long extractTimestamp(Long record, long x) {
             return counter++;
         }
-    }
-
-    @Test
-    public void testEnumeratorReaderCommunication() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        MockBaseSource source = new MockBaseSource(2, 10, Boundedness.BOUNDED);
-        DataStream<Integer> stream =
-                env.fromSource(source, WatermarkStrategy.noWatermarks(), "TestingSource");
-        executeAndVerify(env, stream, 20);
-    }
-
-    @Test
-    public void testMultipleSources() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        MockBaseSource source1 = new MockBaseSource(2, 10, Boundedness.BOUNDED);
-        MockBaseSource source2 = new MockBaseSource(2, 10, 20, Boundedness.BOUNDED);
-        DataStream<Integer> stream1 =
-                env.fromSource(source1, WatermarkStrategy.noWatermarks(), "TestingSource1");
-        DataStream<Integer> stream2 =
-                env.fromSource(source2, WatermarkStrategy.noWatermarks(), "TestingSource2");
-        executeAndVerify(env, stream1.union(stream2), 40);
-    }
-
-    @SuppressWarnings("serial")
-    private void executeAndVerify(
-            StreamExecutionEnvironment env, DataStream<Integer> stream, int numRecords)
-            throws Exception {
-        stream.addSink(
-                new RichSinkFunction<Integer>() {
-                    @Override
-                    public void open(Configuration parameters) throws Exception {
-                        getRuntimeContext()
-                                .addAccumulator("result", new ListAccumulator<Integer>());
-                    }
-
-                    @Override
-                    public void invoke(Integer value, Context context) throws Exception {
-                        getRuntimeContext().getAccumulator("result").add(value);
-                    }
-                });
-        List<Integer> result = env.execute().getAccumulatorResult("result");
-        Collections.sort(result);
-        assertEquals(numRecords, result.size());
-        assertEquals(0, (int) result.get(0));
-        assertEquals(numRecords - 1, (int) result.get(result.size() - 1));
     }
 }
