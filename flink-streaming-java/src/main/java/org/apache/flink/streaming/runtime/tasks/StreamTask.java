@@ -118,7 +118,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 
-import static org.apache.flink.configuration.TaskManagerOptions.AUTOMATIC_BUFFER_ADJUSTMENT_PERIOD;
 import static org.apache.flink.util.ExceptionUtils.firstOrSuppressed;
 import static org.apache.flink.util.ExceptionUtils.rethrowException;
 import static org.apache.flink.util.Preconditions.checkState;
@@ -681,16 +680,16 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> extends Ab
     }
 
     private void throughputCalculationSetup() {
-        systemTimerService.registerTimer(
-                systemTimerService.getCurrentProcessingTime()
-                        + getTaskConfiguration().get(AUTOMATIC_BUFFER_ADJUSTMENT_PERIOD),
-                timestamp ->
-                        mainMailboxExecutor.submit(
-                                () -> {
-                                    throughputCalculator.calculateThroughput();
-                                    throughputCalculationSetup();
-                                },
-                                "Throughput recalculation"));
+        //        systemTimerService.registerTimer(
+        //                systemTimerService.getCurrentProcessingTime()
+        //                        + getTaskConfiguration().get(AUTOMATIC_BUFFER_ADJUSTMENT_PERIOD),
+        //                timestamp ->
+        //                        mainMailboxExecutor.submit(
+        //                                () -> {
+        //                                    throughputCalculator.calculateThroughput();
+        //                                    throughputCalculationSetup();
+        //                                },
+        //                                "Throughput recalculation"));
     }
 
     private void runWithCleanUpOnFail(RunnableWithException run) throws Exception {
