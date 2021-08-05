@@ -41,21 +41,43 @@ public class TwoInputSelectionHandler {
 
     private int inputsFinishedMask = 0;
 
+    private enum OperatingMode {
+        NO_INPUT_SELECTABLE,
+        INPUT_SELECTABLE_PRESENT_NO_DATA_INPUTS_FINISHED,
+        INPUT_SELECTABLE_PRESENT_SOME_DATA_INPUTS_FINISHED,
+        ALL_DATA_INPUTS_FINISHED;
+    }
+
+    private OperatingMode operatingMode;
+
     public TwoInputSelectionHandler(@Nullable InputSelectable inputSelectable) {
         this.inputSelectable = inputSelectable;
         this.availableInputsMask =
                 (int) new InputSelection.Builder().select(1).select(2).build().getInputMask();
+        if (inputSelectable != null) {
+            this.operatingMode = OperatingMode.INPUT_SELECTABLE_PRESENT_NO_DATA_INPUTS_FINISHED;
+        } else {
+            this.operatingMode = OperatingMode.NO_INPUT_SELECTABLE;
+        }
     }
 
     void nextSelection() {
-        if (inputSelectable == null) {
-            selectedInputsMask = (int) InputSelection.ALL.getInputMask();
-            //        } else if (dataFinishedButNotPartition != 0) {
-            //            selectedInputsMask =
-            //                    ((int) inputSelectable.nextSelection().getInputMask()
-            //                            | dataFinishedButNotPartition);
-        } else {
-            selectedInputsMask = (int) inputSelectable.nextSelection().getInputMask();
+        switch (operatingMode) {
+            case NO_INPUT_SELECTABLE:
+            case ALL_DATA_INPUTS_FINISHED:
+                selectedInputsMask = (int) InputSelection.ALL.getInputMask();
+                break;
+            case INPUT_SELECTABLE_PRESENT_NO_DATA_INPUTS_FINISHED:
+                selectedInputsMask = (int) inputSelectable.nextSelection().getInputMask();
+                break;
+            case INPUT_SELECTABLE_PRESENT_SOME_DATA_INPUTS_FINISHED:
+                selectedInputsMask =
+                        ((int) inputSelectable.nextSelection().getInputMask()
+                                | dataFinishedButNotPartition);
+                break;
+            default:
+                throw new UnsupportedOperationException(
+                        "Unsupported operatingMode = " + operatingMode);
         }
     }
 
