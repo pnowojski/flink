@@ -42,7 +42,6 @@ import org.apache.flink.streaming.runtime.metrics.MinWatermarkGauge;
 import org.apache.flink.streaming.runtime.metrics.WatermarkGauge;
 import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
-import org.apache.flink.util.concurrent.FutureUtils;
 
 import javax.annotation.Nullable;
 
@@ -53,7 +52,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * A {@link StreamTask} for executing a {@link MultipleInputStreamOperator} and supporting the
@@ -196,16 +194,7 @@ public class MultipleInputStreamTask<OUT>
         // unfinished network inputs, and the checkpoint would be triggered
         // after received all the EndOfPartitionEvent.
         if (options.getCheckpointType().shouldDrain()) {
-            CompletableFuture<Void> sourcesStopped =
-                    FutureUtils.waitForAll(
-                            operatorChain.getSourceTaskInputs().stream()
-                                    .map(s -> s.getOperator().stop())
-                                    .collect(Collectors.toList()));
-
-            return assertTriggeringCheckpointExceptions(
-                    sourcesStopped.thenCompose(
-                            ignore -> triggerSourcesCheckpointAsync(metadata, options)),
-                    metadata.getCheckpointId());
+            throw new UnsupportedOperationException();
         } else {
             return triggerSourcesCheckpointAsync(metadata, options);
         }

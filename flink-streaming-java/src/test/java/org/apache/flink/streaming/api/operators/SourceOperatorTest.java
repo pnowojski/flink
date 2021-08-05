@@ -59,7 +59,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -143,12 +142,6 @@ public class SourceOperatorTest {
         CollectingDataOutput<Integer> dataOutput = new CollectingDataOutput<>();
         assertEquals(DataInputStatus.NOTHING_AVAILABLE, operator.emitNext(dataOutput));
         assertFalse(operator.isAvailable());
-
-        CompletableFuture<Void> sourceStopped = operator.stop();
-        assertTrue(operator.isAvailable());
-        assertFalse(sourceStopped.isDone());
-        assertEquals(DataInputStatus.END_OF_DATA, operator.emitNext(dataOutput));
-        assertTrue(sourceStopped.isDone());
     }
 
     @Test
