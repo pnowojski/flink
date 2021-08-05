@@ -55,7 +55,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** A factory for {@link StreamTwoInputProcessor}. */
 public class StreamTwoInputProcessorFactory {
-    public static <IN1, IN2> StreamTwoInputProcessor<IN1, IN2> create(
+    public static <IN1, IN2> StreamMultipleInputProcessor create(
             AbstractInvokable ownerTask,
             CheckpointedInputGate[] checkpointedInputGates,
             IOManager ioManager,
@@ -189,8 +189,9 @@ public class StreamTwoInputProcessorFactory {
         StreamOneInputProcessor<IN2> processor2 =
                 new StreamOneInputProcessor<>(input2, output2, endOfInputAware);
 
-        return new StreamTwoInputProcessor<>(
-                new TwoInputSelectionHandler(inputSelectable), processor1, processor2);
+        return new StreamMultipleInputProcessor(
+                new MultipleInputSelectionHandler(inputSelectable, 2),
+                new StreamOneInputProcessor[] {processor1, processor2});
     }
 
     @SuppressWarnings("unchecked")
