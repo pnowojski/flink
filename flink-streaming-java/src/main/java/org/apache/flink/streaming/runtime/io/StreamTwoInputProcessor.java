@@ -97,7 +97,7 @@ public final class StreamTwoInputProcessor<IN1, IN2> implements StreamInputProce
         } else {
             secondInputStatus = processor2.processInput();
         }
-        updateAvailability();
+        // updateAvailability();
         inputSelectionHandler.nextSelection();
 
         return getInputStatus();
