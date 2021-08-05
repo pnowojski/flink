@@ -128,10 +128,10 @@ public final class StreamTwoInputProcessor<IN1, IN2> implements StreamInputProce
             return DataInputStatus.END_OF_INPUT;
         }
 
-        if (inputSelectionHandler.allInputsReceivedEndOfData() & !emittedEndOfData) {
-            emittedEndOfData = true;
-            return DataInputStatus.END_OF_DATA;
-        }
+        //        if (inputSelectionHandler.allInputsReceivedEndOfData() & !emittedEndOfData) {
+        //            emittedEndOfData = true;
+        //            return DataInputStatus.END_OF_DATA;
+        //        }
 
         if (inputSelectionHandler.areAllInputsSelected()) {
             if (firstInputStatus == DataInputStatus.MORE_AVAILABLE

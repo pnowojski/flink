@@ -50,10 +50,10 @@ public class TwoInputSelectionHandler {
     void nextSelection() {
         if (inputSelectable == null) {
             selectedInputsMask = (int) InputSelection.ALL.getInputMask();
-        } else if (dataFinishedButNotPartition != 0) {
-            selectedInputsMask =
-                    ((int) inputSelectable.nextSelection().getInputMask()
-                            | dataFinishedButNotPartition);
+            //        } else if (dataFinishedButNotPartition != 0) {
+            //            selectedInputsMask =
+            //                    ((int) inputSelectable.nextSelection().getInputMask()
+            //                            | dataFinishedButNotPartition);
         } else {
             selectedInputsMask = (int) inputSelectable.nextSelection().getInputMask();
         }
