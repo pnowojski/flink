@@ -318,8 +318,8 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
                 return emitNextNotInitialized(output);
             case READING:
                 return emitNextReading(currentMainOutput);
-            case SOURCE_STOPPED:
-                return emitNextSourceStopped();
+                //            case SOURCE_STOPPED:
+                //                return emitNextSourceStopped();
             case DATA_FINISHED:
                 return DataInputStatus.END_OF_INPUT;
             default:
@@ -370,13 +370,10 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         switch (operatingMode) {
             case OUTPUT_NOT_INITIALIZED:
             case READING:
-                return sourceReader.isAvailable();
-                //                CompletableFuture<Void> sourceReaderAvailable =
-                // sourceReader.isAvailable();
-                //                return sourceReaderAvailable == AvailabilityProvider.AVAILABLE
-                //                        ? sourceReaderAvailable
-                //                        : CompletableFuture.anyOf(sourceReaderAvailable,
-                // forcedStop);
+                CompletableFuture<Void> sourceReaderAvailable = sourceReader.isAvailable();
+                return sourceReaderAvailable == AvailabilityProvider.AVAILABLE
+                        ? sourceReaderAvailable
+                        : CompletableFuture.anyOf(sourceReaderAvailable, forcedStop);
             case SOURCE_STOPPED:
             case DATA_FINISHED:
                 return AvailabilityProvider.AVAILABLE;
