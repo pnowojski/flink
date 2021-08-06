@@ -312,18 +312,23 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         //                || lastInvokedOutput == null
         //                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
-        switch (operatingMode) {
-            case OUTPUT_NOT_INITIALIZED:
-                return emitNextNotInitialized(output);
-            case READING:
-                return emitNextReading(currentMainOutput);
-                //            case SOURCE_STOPPED:
-                //                return emitNextSourceStopped();
-            case DATA_FINISHED:
-                return DataInputStatus.END_OF_INPUT;
-            default:
-                throw new IllegalStateException("Unknown operating mode: " + operatingMode);
+        if (currentMainOutput == null) {
+            return emitNextNotInitialized(output);
         }
+        return emitNextReading(currentMainOutput);
+        //        switch (operatingMode) {
+        //            case OUTPUT_NOT_INITIALIZED:
+        //                return emitNextNotInitialized(output);
+        //            case READING:
+        //                return emitNextReading(currentMainOutput);
+        //            case SOURCE_STOPPED:
+        //                return emitNextSourceStopped();
+        //            case DATA_FINISHED:
+        //                return DataInputStatus.END_OF_INPUT;
+        //            default:
+        //                throw new IllegalStateException("Unknown operating mode: " +
+        // operatingMode);
+        //        }
     }
 
     private DataInputStatus emitNextSourceStopped() {
@@ -351,7 +356,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
                 return DataInputStatus.NOTHING_AVAILABLE;
             case END_OF_INPUT:
                 this.operatingMode = OperatingMode.DATA_FINISHED;
-                return DataInputStatus.END_OF_DATA;
+                return DataInputStatus.END_OF_INPUT;
             default:
                 throw new IllegalArgumentException("Unknown input status: " + inputStatus);
         }
