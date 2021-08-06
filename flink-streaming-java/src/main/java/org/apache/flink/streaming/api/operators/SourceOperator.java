@@ -281,7 +281,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         }
         super.finish();
 
-        finished.complete(null);
+        // finished.complete(null);
     }
 
     public CompletableFuture<Void> stop() {
