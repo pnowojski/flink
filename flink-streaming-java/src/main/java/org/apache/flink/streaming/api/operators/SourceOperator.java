@@ -312,10 +312,10 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         //                || lastInvokedOutput == null
         //                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
-        if (currentMainOutput == null) {
-            return emitNextNotInitialized(output);
+        if (currentMainOutput != null) {
+            return emitNextReading(currentMainOutput);
         }
-        return emitNextReading(currentMainOutput);
+        return emitNextNotInitialized(output);
         //        switch (operatingMode) {
         //            case OUTPUT_NOT_INITIALIZED:
         //                return emitNextNotInitialized(output);
