@@ -132,12 +132,12 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
     /** A mode to control the behaviour of the {@link #emitNext(DataOutput)} method. */
     private OperatingMode operatingMode;
 
-    private final CompletableFuture<Void> emittedEndOfData = new CompletableFuture<>();
+    private final CompletableFuture<Void> finished = new CompletableFuture<>();
     private final CompletableFuture<Void> forcedStop = new CompletableFuture<>();
 
     private enum OperatingMode {
-        OUTPUT_NOT_INITIALIZED,
         READING,
+        OUTPUT_NOT_INITIALIZED,
         SOURCE_STOPPED,
         DATA_FINISHED
     }
@@ -281,6 +281,8 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
             eventTimeLogic.stopPeriodicWatermarkEmits();
         }
         super.finish();
+
+        finished.complete(null);
     }
 
     public CompletableFuture<Void> stop() {
@@ -291,7 +293,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
                 forcedStop.complete(null);
                 break;
         }
-        return emittedEndOfData;
+        return finished;
     }
 
     @Override
@@ -327,7 +329,6 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
 
     private DataInputStatus emitNextSourceStopped() {
         this.operatingMode = OperatingMode.DATA_FINISHED;
-        emittedEndOfData.complete(null);
         return DataInputStatus.END_OF_DATA;
     }
 
@@ -351,7 +352,6 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
                 return DataInputStatus.NOTHING_AVAILABLE;
             case END_OF_INPUT:
                 this.operatingMode = OperatingMode.DATA_FINISHED;
-                emittedEndOfData.complete(null);
                 return DataInputStatus.END_OF_DATA;
             default:
                 throw new IllegalArgumentException("Unknown input status: " + inputStatus);
