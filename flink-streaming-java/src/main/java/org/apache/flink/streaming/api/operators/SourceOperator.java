@@ -307,29 +307,40 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         // guarding an assumptions we currently make due to the fact that certain classes
         // assume a constant output, this assumption does not need to stand if we emitted all
         // records. In that case the output will change to FinishedDataOutput
-        assert lastInvokedOutput == output
-                || lastInvokedOutput == null
-                || this.operatingMode == OperatingMode.DATA_FINISHED;
+        //        assert lastInvokedOutput == output
+        //                || lastInvokedOutput == null
+        //                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
         switch (operatingMode) {
             case OUTPUT_NOT_INITIALIZED:
-                // this creates a batch or streaming output based on the runtime mode
-                currentMainOutput = eventTimeLogic.createMainOutput(output);
-                lastInvokedOutput = output;
-                this.operatingMode = OperatingMode.READING;
-                return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
+                return emitNextNotInitialized(output);
             case READING:
-                // short circuit the common case (every invocation except the first)
-                return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
+                return emitNextReading(currentMainOutput);
             case SOURCE_STOPPED:
-                this.operatingMode = OperatingMode.DATA_FINISHED;
-                emittedEndOfData.complete(null);
-                return DataInputStatus.END_OF_DATA;
+                return emitNextSourceStopped();
             case DATA_FINISHED:
                 return DataInputStatus.END_OF_INPUT;
             default:
                 throw new IllegalStateException("Unknown operating mode: " + operatingMode);
         }
+    }
+
+    private DataInputStatus emitNextSourceStopped() {
+        this.operatingMode = OperatingMode.DATA_FINISHED;
+        emittedEndOfData.complete(null);
+        return DataInputStatus.END_OF_DATA;
+    }
+
+    private DataInputStatus emitNextReading(ReaderOutput<OUT> currentMainOutput) throws Exception {
+        return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
+    }
+
+    private DataInputStatus emitNextNotInitialized(DataOutput<OUT> output) throws Exception {
+        // this creates a batch or streaming output based on the runtime mode
+        currentMainOutput = eventTimeLogic.createMainOutput(output);
+        lastInvokedOutput = output;
+        this.operatingMode = OperatingMode.READING;
+        return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
     }
 
     private DataInputStatus convertToInternalStatus(InputStatus inputStatus) {
