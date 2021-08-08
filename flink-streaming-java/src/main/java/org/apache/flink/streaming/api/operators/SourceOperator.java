@@ -313,9 +313,13 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         //                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
         if (currentMainOutput != null) {
-            return emitNextReading(currentMainOutput);
+            return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
         }
-        return emitNextNotInitialized(output);
+        // this creates a batch or streaming output based on the runtime mode
+        currentMainOutput = eventTimeLogic.createMainOutput(output);
+        lastInvokedOutput = output;
+        this.operatingMode = OperatingMode.READING;
+        return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
         //        switch (operatingMode) {
         //            case OUTPUT_NOT_INITIALIZED:
         //                return emitNextNotInitialized(output);
@@ -334,18 +338,6 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
     private DataInputStatus emitNextSourceStopped() {
         this.operatingMode = OperatingMode.DATA_FINISHED;
         return DataInputStatus.END_OF_DATA;
-    }
-
-    private DataInputStatus emitNextReading(ReaderOutput<OUT> currentMainOutput) throws Exception {
-        return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
-    }
-
-    private DataInputStatus emitNextNotInitialized(DataOutput<OUT> output) throws Exception {
-        // this creates a batch or streaming output based on the runtime mode
-        currentMainOutput = eventTimeLogic.createMainOutput(output);
-        lastInvokedOutput = output;
-        this.operatingMode = OperatingMode.READING;
-        return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
     }
 
     private DataInputStatus convertToInternalStatus(InputStatus inputStatus) {
