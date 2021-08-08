@@ -312,32 +312,31 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         //                || lastInvokedOutput == null
         //                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
-        if (currentMainOutput != null) {
-            return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
+        switch (operatingMode) {
+            case READING:
+                return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
+            case OUTPUT_NOT_INITIALIZED:
+                return emitNextNotInitialized(output);
+            case SOURCE_STOPPED:
+                return emitNextSourceStopped();
+            case DATA_FINISHED:
+                return DataInputStatus.END_OF_INPUT;
+            default:
+                throw new IllegalStateException("Unknown operating mode: " + operatingMode);
         }
-        // this creates a batch or streaming output based on the runtime mode
-        currentMainOutput = eventTimeLogic.createMainOutput(output);
-        lastInvokedOutput = output;
-        this.operatingMode = OperatingMode.READING;
-        return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
-        //        switch (operatingMode) {
-        //            case OUTPUT_NOT_INITIALIZED:
-        //                return emitNextNotInitialized(output);
-        //            case READING:
-        //                return emitNextReading(currentMainOutput);
-        //            case SOURCE_STOPPED:
-        //                return emitNextSourceStopped();
-        //            case DATA_FINISHED:
-        //                return DataInputStatus.END_OF_INPUT;
-        //            default:
-        //                throw new IllegalStateException("Unknown operating mode: " +
-        // operatingMode);
-        //        }
     }
 
     private DataInputStatus emitNextSourceStopped() {
         this.operatingMode = OperatingMode.DATA_FINISHED;
         return DataInputStatus.END_OF_DATA;
+    }
+
+    private DataInputStatus emitNextNotInitialized(DataOutput<OUT> output) throws Exception {
+        // this creates a batch or streaming output based on the runtime mode
+        currentMainOutput = eventTimeLogic.createMainOutput(output);
+        lastInvokedOutput = output;
+        this.operatingMode = OperatingMode.READING;
+        return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
     }
 
     private DataInputStatus convertToInternalStatus(InputStatus inputStatus) {
