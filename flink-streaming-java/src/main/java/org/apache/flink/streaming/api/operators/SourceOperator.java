@@ -32,7 +32,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputStatus;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.metrics.MetricGroup;
-import org.apache.flink.runtime.io.AvailabilityProvider;
 import org.apache.flink.runtime.operators.coordination.OperatorEvent;
 import org.apache.flink.runtime.operators.coordination.OperatorEventGateway;
 import org.apache.flink.runtime.operators.coordination.OperatorEventHandler;
@@ -282,7 +281,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         }
         super.finish();
 
-        finished.complete(null);
+        // finished.complete(null);
     }
 
     public CompletableFuture<Void> stop() {
@@ -313,31 +312,32 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         //                || lastInvokedOutput == null
         //                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
-        switch (operatingMode) {
-            case READING:
-                return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
-            case OUTPUT_NOT_INITIALIZED:
-                return emitNextNotInitialized(output);
-            case SOURCE_STOPPED:
-                return emitNextSourceStopped();
-            case DATA_FINISHED:
-                return DataInputStatus.END_OF_INPUT;
-            default:
-                throw new IllegalStateException("Unknown operating mode: " + operatingMode);
+        if (currentMainOutput != null) {
+            return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
         }
-    }
-
-    private DataInputStatus emitNextSourceStopped() {
-        this.operatingMode = OperatingMode.DATA_FINISHED;
-        return DataInputStatus.END_OF_DATA;
-    }
-
-    private DataInputStatus emitNextNotInitialized(DataOutput<OUT> output) throws Exception {
         // this creates a batch or streaming output based on the runtime mode
         currentMainOutput = eventTimeLogic.createMainOutput(output);
         lastInvokedOutput = output;
         this.operatingMode = OperatingMode.READING;
         return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
+        //        switch (operatingMode) {
+        //            case OUTPUT_NOT_INITIALIZED:
+        //                return emitNextNotInitialized(output);
+        //            case READING:
+        //                return emitNextReading(currentMainOutput);
+        //            case SOURCE_STOPPED:
+        //                return emitNextSourceStopped();
+        //            case DATA_FINISHED:
+        //                return DataInputStatus.END_OF_INPUT;
+        //            default:
+        //                throw new IllegalStateException("Unknown operating mode: " +
+        // operatingMode);
+        //        }
+    }
+
+    private DataInputStatus emitNextSourceStopped() {
+        this.operatingMode = OperatingMode.DATA_FINISHED;
+        return DataInputStatus.END_OF_DATA;
     }
 
     private DataInputStatus convertToInternalStatus(InputStatus inputStatus) {
@@ -363,19 +363,23 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
 
     @Override
     public CompletableFuture<?> getAvailableFuture() {
-        switch (operatingMode) {
-            case OUTPUT_NOT_INITIALIZED:
-            case READING:
-                CompletableFuture<Void> sourceReaderAvailable = sourceReader.isAvailable();
-                return sourceReaderAvailable == AvailabilityProvider.AVAILABLE
-                        ? sourceReaderAvailable
-                        : CompletableFuture.anyOf(sourceReaderAvailable, forcedStop);
-            case SOURCE_STOPPED:
-            case DATA_FINISHED:
-                return AvailabilityProvider.AVAILABLE;
-            default:
-                throw new IllegalStateException("Unknown operating mode: " + operatingMode);
-        }
+        return sourceReader.isAvailable();
+
+        //        switch (operatingMode) {
+        //            case OUTPUT_NOT_INITIALIZED:
+        //            case READING:
+        //                CompletableFuture<Void> sourceReaderAvailable =
+        // sourceReader.isAvailable();
+        //                return sourceReaderAvailable == AvailabilityProvider.AVAILABLE
+        //                        ? sourceReaderAvailable
+        //                        : CompletableFuture.anyOf(sourceReaderAvailable, forcedStop);
+        //            case SOURCE_STOPPED:
+        //            case DATA_FINISHED:
+        //                return AvailabilityProvider.AVAILABLE;
+        //            default:
+        //                throw new IllegalStateException("Unknown operating mode: " +
+        // operatingMode);
+        //        }
     }
 
     @Override
