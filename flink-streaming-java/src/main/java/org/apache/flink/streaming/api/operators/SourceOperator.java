@@ -132,12 +132,12 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
     /** A mode to control the behaviour of the {@link #emitNext(DataOutput)} method. */
     private OperatingMode operatingMode;
 
-    private final CompletableFuture<Void> emittedEndOfData = new CompletableFuture<>();
+    private final CompletableFuture<Void> finished = new CompletableFuture<>();
     private final CompletableFuture<Void> forcedStop = new CompletableFuture<>();
 
     private enum OperatingMode {
-        OUTPUT_NOT_INITIALIZED,
         READING,
+        OUTPUT_NOT_INITIALIZED,
         SOURCE_STOPPED,
         DATA_FINISHED
     }
@@ -281,6 +281,8 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
             eventTimeLogic.stopPeriodicWatermarkEmits();
         }
         super.finish();
+
+        finished.complete(null);
     }
 
     public CompletableFuture<Void> stop() {
@@ -291,7 +293,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
                 forcedStop.complete(null);
                 break;
         }
-        return emittedEndOfData;
+        return finished;
     }
 
     @Override
@@ -307,29 +309,34 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         // guarding an assumptions we currently make due to the fact that certain classes
         // assume a constant output, this assumption does not need to stand if we emitted all
         // records. In that case the output will change to FinishedDataOutput
-        assert lastInvokedOutput == output
-                || lastInvokedOutput == null
-                || this.operatingMode == OperatingMode.DATA_FINISHED;
+        //        assert lastInvokedOutput == output
+        //                || lastInvokedOutput == null
+        //                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
         switch (operatingMode) {
-            case OUTPUT_NOT_INITIALIZED:
-                // this creates a batch or streaming output based on the runtime mode
-                currentMainOutput = eventTimeLogic.createMainOutput(output);
-                lastInvokedOutput = output;
-                this.operatingMode = OperatingMode.READING;
-                return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
             case READING:
-                // short circuit the common case (every invocation except the first)
                 return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
+            case OUTPUT_NOT_INITIALIZED:
+                return emitNextNotInitialized(output);
             case SOURCE_STOPPED:
-                this.operatingMode = OperatingMode.DATA_FINISHED;
-                emittedEndOfData.complete(null);
-                return DataInputStatus.END_OF_DATA;
+                return emitNextSourceStopped();
             case DATA_FINISHED:
                 return DataInputStatus.END_OF_INPUT;
             default:
                 throw new IllegalStateException("Unknown operating mode: " + operatingMode);
         }
+    }
+
+    private DataInputStatus emitNextSourceStopped() {
+        this.operatingMode = OperatingMode.DATA_FINISHED;
+        return DataInputStatus.END_OF_DATA;
+    }
+
+    private DataInputStatus emitNextNotInitialized(DataOutput<OUT> output) throws Exception {
+        currentMainOutput = eventTimeLogic.createMainOutput(output);
+        lastInvokedOutput = output;
+        this.operatingMode = OperatingMode.READING;
+        return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
     }
 
     private DataInputStatus convertToInternalStatus(InputStatus inputStatus) {
@@ -340,7 +347,6 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
                 return DataInputStatus.NOTHING_AVAILABLE;
             case END_OF_INPUT:
                 this.operatingMode = OperatingMode.DATA_FINISHED;
-                emittedEndOfData.complete(null);
                 return DataInputStatus.END_OF_DATA;
             default:
                 throw new IllegalArgumentException("Unknown input status: " + inputStatus);
