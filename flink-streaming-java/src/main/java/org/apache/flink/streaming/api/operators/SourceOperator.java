@@ -313,15 +313,17 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         //                || lastInvokedOutput == null
         //                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
+        if (operatingMode == OperatingMode.READING) {
+            return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
+        }
         switch (operatingMode) {
-            case READING:
-                return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
             case OUTPUT_NOT_INITIALIZED:
                 return emitNextNotInitialized(output);
             case SOURCE_STOPPED:
                 return emitNextSourceStopped();
             case DATA_FINISHED:
                 return DataInputStatus.END_OF_INPUT;
+            case READING:
             default:
                 throw new IllegalStateException("Unknown operating mode: " + operatingMode);
         }
