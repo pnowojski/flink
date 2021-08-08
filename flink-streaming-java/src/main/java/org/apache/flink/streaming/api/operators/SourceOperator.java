@@ -312,27 +312,28 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         //                || lastInvokedOutput == null
         //                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
-        if (currentMainOutput != null) {
+        if (operatingMode == OperatingMode.READING) {
             return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
         }
         // this creates a batch or streaming output based on the runtime mode
+        switch (operatingMode) {
+            case OUTPUT_NOT_INITIALIZED:
+                return emitNextNotInitialized(output);
+            case SOURCE_STOPPED:
+                return emitNextSourceStopped();
+            case DATA_FINISHED:
+                return DataInputStatus.END_OF_INPUT;
+            case READING:
+            default:
+                throw new IllegalStateException("Unknown operating mode: " + operatingMode);
+        }
+    }
+
+    private DataInputStatus emitNextNotInitialized(DataOutput<OUT> output) throws Exception {
         currentMainOutput = eventTimeLogic.createMainOutput(output);
         lastInvokedOutput = output;
         this.operatingMode = OperatingMode.READING;
         return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
-        //        switch (operatingMode) {
-        //            case OUTPUT_NOT_INITIALIZED:
-        //                return emitNextNotInitialized(output);
-        //            case READING:
-        //                return emitNextReading(currentMainOutput);
-        //            case SOURCE_STOPPED:
-        //                return emitNextSourceStopped();
-        //            case DATA_FINISHED:
-        //                return DataInputStatus.END_OF_INPUT;
-        //            default:
-        //                throw new IllegalStateException("Unknown operating mode: " +
-        // operatingMode);
-        //        }
     }
 
     private DataInputStatus emitNextSourceStopped() {
