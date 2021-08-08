@@ -309,36 +309,34 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         // guarding an assumptions we currently make due to the fact that certain classes
         // assume a constant output, this assumption does not need to stand if we emitted all
         // records. In that case the output will change to FinishedDataOutput
-        //        assert lastInvokedOutput == output
-        //                || lastInvokedOutput == null
-        //                || this.operatingMode == OperatingMode.DATA_FINISHED;
+        assert lastInvokedOutput == output
+                || lastInvokedOutput == null
+                || this.operatingMode == OperatingMode.DATA_FINISHED;
 
+        // short circuit the hot path. Without this short circuit (READING handled in the
+        // switch/case) InputBenchmark.mapSink was showing a performance regression.
         if (operatingMode == OperatingMode.READING) {
             return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
         }
+        return emitNextNotReading(output);
+    }
+
+    private DataInputStatus emitNextNotReading(DataOutput<OUT> output) throws Exception {
         switch (operatingMode) {
             case OUTPUT_NOT_INITIALIZED:
-                return emitNextNotInitialized(output);
+                currentMainOutput = eventTimeLogic.createMainOutput(output);
+                lastInvokedOutput = output;
+                this.operatingMode = OperatingMode.READING;
+                return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
             case SOURCE_STOPPED:
-                return emitNextSourceStopped();
+                this.operatingMode = OperatingMode.DATA_FINISHED;
+                return DataInputStatus.END_OF_DATA;
             case DATA_FINISHED:
                 return DataInputStatus.END_OF_INPUT;
             case READING:
             default:
                 throw new IllegalStateException("Unknown operating mode: " + operatingMode);
         }
-    }
-
-    private DataInputStatus emitNextSourceStopped() {
-        this.operatingMode = OperatingMode.DATA_FINISHED;
-        return DataInputStatus.END_OF_DATA;
-    }
-
-    private DataInputStatus emitNextNotInitialized(DataOutput<OUT> output) throws Exception {
-        currentMainOutput = eventTimeLogic.createMainOutput(output);
-        lastInvokedOutput = output;
-        this.operatingMode = OperatingMode.READING;
-        return convertToInternalStatus(sourceReader.pollNext(currentMainOutput));
     }
 
     private DataInputStatus convertToInternalStatus(InputStatus inputStatus) {
