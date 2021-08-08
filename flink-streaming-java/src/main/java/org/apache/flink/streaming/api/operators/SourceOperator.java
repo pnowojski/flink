@@ -32,6 +32,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputStatus;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.runtime.io.AvailabilityProvider;
 import org.apache.flink.runtime.operators.coordination.OperatorEvent;
 import org.apache.flink.runtime.operators.coordination.OperatorEventGateway;
 import org.apache.flink.runtime.operators.coordination.OperatorEventHandler;
@@ -281,7 +282,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         }
         super.finish();
 
-        // finished.complete(null);
+        finished.complete(null);
     }
 
     public CompletableFuture<Void> stop() {
@@ -362,23 +363,19 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
 
     @Override
     public CompletableFuture<?> getAvailableFuture() {
-        return sourceReader.isAvailable();
-
-        //        switch (operatingMode) {
-        //            case OUTPUT_NOT_INITIALIZED:
-        //            case READING:
-        //                CompletableFuture<Void> sourceReaderAvailable =
-        // sourceReader.isAvailable();
-        //                return sourceReaderAvailable == AvailabilityProvider.AVAILABLE
-        //                        ? sourceReaderAvailable
-        //                        : CompletableFuture.anyOf(sourceReaderAvailable, forcedStop);
-        //            case SOURCE_STOPPED:
-        //            case DATA_FINISHED:
-        //                return AvailabilityProvider.AVAILABLE;
-        //            default:
-        //                throw new IllegalStateException("Unknown operating mode: " +
-        // operatingMode);
-        //        }
+        switch (operatingMode) {
+            case OUTPUT_NOT_INITIALIZED:
+            case READING:
+                CompletableFuture<Void> sourceReaderAvailable = sourceReader.isAvailable();
+                return sourceReaderAvailable == AvailabilityProvider.AVAILABLE
+                        ? sourceReaderAvailable
+                        : CompletableFuture.anyOf(sourceReaderAvailable, forcedStop);
+            case SOURCE_STOPPED:
+            case DATA_FINISHED:
+                return AvailabilityProvider.AVAILABLE;
+            default:
+                throw new IllegalStateException("Unknown operating mode: " + operatingMode);
+        }
     }
 
     @Override
