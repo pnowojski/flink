@@ -20,8 +20,12 @@ package org.apache.flink.runtime.operators.lifecycle;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.operators.lifecycle.command.TestCommand;
+import org.apache.flink.runtime.operators.lifecycle.command.TestCommandQueue;
+import org.apache.flink.runtime.operators.lifecycle.command.TestCommandQueue.TestCommandRetention;
+import org.apache.flink.runtime.operators.lifecycle.command.TestCommandQueue.TestCommandTarget;
+import org.apache.flink.runtime.operators.lifecycle.event.TestEvent;
 import org.apache.flink.runtime.operators.lifecycle.event.TestEventQueue;
-import org.apache.flink.runtime.operators.lifecycle.event.WatermarkReceivedEvent;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.apache.flink.util.function.ThrowingConsumer;
 
@@ -62,7 +66,8 @@ class TestJobExecutor {
         return new TestJobExecutor(steps);
     }
 
-    public TestJobExecutor waitForEvent(Class<? extends TestEvent> eventClass, TestEventQueue eventQueue) {
+    public TestJobExecutor waitForEvent(
+            Class<? extends TestEvent> eventClass, TestEventQueue eventQueue) {
         List<ThrowingConsumer<TestJobExecutionContext, Exception>> steps =
                 new ArrayList<>(this.steps);
         steps.add(
@@ -82,6 +87,28 @@ class TestJobExecutor {
                             .get();
                 });
         return new TestJobExecutor(steps);
+    }
+
+    public TestJobExecutor sendCommand(
+            TestCommandQueue commandQueue,
+            TestCommand testCommand,
+            TestCommandRetention retention) {
+        steps.add(ctx -> commandQueue.add(testCommand, TestCommandTarget.ALL, retention));
+        return this;
+    }
+
+    public TestJobExecutor waitForTermination() {
+        steps.add(
+                ctx -> {
+                    while (!ctx.miniClusterResource
+                            .getClusterClient()
+                            .getJobStatus(ctx.job)
+                            .get()
+                            .isGloballyTerminalState()) {
+                        Thread.sleep(100);
+                    }
+                });
+        return this;
     }
 
     private static class TestJobExecutionContext {

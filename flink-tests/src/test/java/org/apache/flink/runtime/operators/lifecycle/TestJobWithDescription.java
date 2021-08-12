@@ -18,6 +18,7 @@
 package org.apache.flink.runtime.operators.lifecycle;
 
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.operators.lifecycle.command.TestCommandQueue;
 import org.apache.flink.runtime.operators.lifecycle.event.TestEventQueue;
 
 import java.util.Map;
@@ -30,17 +31,20 @@ public class TestJobWithDescription {
     final Set<String> operatorsWithDataFlowTracking;
     final Map<String, Integer> operatorsNumberOfInputs;
     final TestEventQueue eventQueue;
+    final TestCommandQueue commandQueue;
 
     public TestJobWithDescription(
             JobGraph jobGraph,
             Set<String> operatorsWithLifecycleTracking,
             Set<String> operatorsWithDataFlowTracking,
             Map<String, Integer> operatorsNumberOfInputs,
-            TestEventQueue eventQueue) {
+            TestEventQueue eventQueue,
+            TestCommandQueue commandQueue) {
         this.jobGraph = jobGraph;
         this.operatorsWithLifecycleTracking = operatorsWithLifecycleTracking;
         this.operatorsWithDataFlowTracking = operatorsWithDataFlowTracking;
         this.operatorsNumberOfInputs = operatorsNumberOfInputs;
         this.eventQueue = eventQueue;
+        this.commandQueue = commandQueue;
     }
 }

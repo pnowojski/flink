@@ -20,6 +20,7 @@ package org.apache.flink.runtime.operators.lifecycle.graph;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.operators.lifecycle.TestJobWithDescription;
+import org.apache.flink.runtime.operators.lifecycle.command.TestCommandQueue;
 import org.apache.flink.runtime.operators.lifecycle.event.DataSentEvent;
 import org.apache.flink.runtime.operators.lifecycle.event.TestEvent;
 import org.apache.flink.runtime.operators.lifecycle.event.TestEventQueue;
@@ -121,6 +122,7 @@ public class TestJobBuilders {
                         Consumer<StreamExecutionEnvironment> envConsumer) {
 
                     TestEventQueue eventQueue = TestEventQueue.createShared(shared);
+                    TestCommandQueue commandQueue = TestCommandQueue.createShared(shared);
 
                     StreamExecutionEnvironment env = prepareEnv(confConsumer, envConsumer);
 
@@ -137,18 +139,24 @@ public class TestJobBuilders {
                     // todo: FLIP-27 sources
                     // todo: chain sources
                     DataStream<TestEvent> unitedSources =
-                            env.addSource(new TestEventSource(unitedSourceLeft, eventQueue))
+                            env.addSource(
+                                            new TestEventSource(
+                                                    unitedSourceLeft, eventQueue, commandQueue))
                                     .setUidHash(unitedSourceLeft)
                                     .assignTimestampsAndWatermarks(createWmAssigner())
                                     .union(
                                             env.addSource(
                                                             new TestEventSource(
-                                                                    unitedSourceRight, eventQueue))
+                                                                    unitedSourceRight,
+                                                                    eventQueue,
+                                                                    commandQueue))
                                                     .setUidHash(unitedSourceRight)
                                                     .assignTimestampsAndWatermarks(
                                                             createWmAssigner()));
                     SingleOutputStreamOperator<TestEvent> sideSource =
-                            env.addSource(new TestEventSource(multiSource, eventQueue))
+                            env.addSource(
+                                            new TestEventSource(
+                                                    multiSource, eventQueue, commandQueue))
                                     .setUidHash(multiSource)
                                     .assignTimestampsAndWatermarks(createWmAssigner());
 
@@ -198,7 +206,9 @@ public class TestJobBuilders {
                                     .connect(
                                             env.addSource(
                                                             new TestEventSource(
-                                                                    connectedSource, eventQueue))
+                                                                    connectedSource,
+                                                                    eventQueue,
+                                                                    commandQueue))
                                                     .setUidHash(connectedSource))
                                     .transform(
                                             "transform-3-two-input",
@@ -227,7 +237,8 @@ public class TestJobBuilders {
                                             mapTwoInput,
                                             multipleInput)),
                             operatorsNumberOfInputs,
-                            eventQueue);
+                            eventQueue,
+                            commandQueue);
                 }
 
                 @Override
