@@ -21,11 +21,30 @@ import java.io.Serializable;
 
 /** A command to be executed by a test operator. */
 public interface TestCommand extends Serializable {
+    TestCommand FAIL =
+            new TestCommand() {
+                @Override
+                public boolean isTerminal() {
+                    return true;
+                }
+
+                @Override
+                public String toString() {
+                    return "FAIL";
+                }
+            };
     TestCommand FINISH_SOURCES =
             new TestCommand() {
+                @Override
+                public boolean isTerminal() {
+                    return true;
+                }
+
                 @Override
                 public String toString() {
                     return "FINISH_SOURCES";
                 }
             };
+
+    boolean isTerminal();
 }

@@ -23,6 +23,7 @@ import org.apache.flink.runtime.operators.lifecycle.command.TestCommandQueue;
 import org.apache.flink.runtime.operators.lifecycle.command.TestCommandQueue.TestCommandTarget;
 import org.apache.flink.runtime.operators.lifecycle.event.DataSentEvent;
 import org.apache.flink.runtime.operators.lifecycle.event.OperatorFinishedEvent;
+import org.apache.flink.runtime.operators.lifecycle.event.OperatorStartedEvent;
 import org.apache.flink.runtime.operators.lifecycle.event.TestEvent;
 import org.apache.flink.runtime.operators.lifecycle.event.TestEventQueue;
 import org.apache.flink.streaming.api.functions.source.ParallelSourceFunction;
@@ -54,7 +55,10 @@ class TestEventSource extends RichSourceFunction<TestEvent>
         super.open(parameters);
         this.isRunning = true;
         this.scheduledCommands = new LinkedBlockingQueue<>();
-        this.commandQueue.subscribe(cmd -> scheduledCommands.add(cmd), TestCommandTarget.ALL);
+        this.commandQueue.subscribe(
+                cmd -> scheduledCommands.add(cmd), TestCommandTarget.forOperatorId(operatorID));
+        this.eventQueue.add(
+                new OperatorStartedEvent(operatorID, getRuntimeContext().getIndexOfThisSubtask()));
     }
 
     @Override
@@ -64,6 +68,8 @@ class TestEventSource extends RichSourceFunction<TestEvent>
             TestCommand cmd = scheduledCommands.poll();
             if (cmd == FINISH_SOURCES) {
                 isRunning = false;
+            } else if (cmd == FAIL) {
+                throw new RuntimeException("requested to fail");
             } else if (cmd == null) {
                 synchronized (ctx.getCheckpointLock()) {
                     ctx.collect(

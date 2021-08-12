@@ -28,6 +28,7 @@ import java.util.Set;
 public class TestJobWithDescription {
     final JobGraph jobGraph;
     final Set<String> operatorsWithLifecycleTracking;
+    final Set<String> sources;
     final Set<String> operatorsWithDataFlowTracking;
     final Map<String, Integer> operatorsNumberOfInputs;
     final TestEventQueue eventQueue;
@@ -39,12 +40,14 @@ public class TestJobWithDescription {
             Set<String> operatorsWithDataFlowTracking,
             Map<String, Integer> operatorsNumberOfInputs,
             TestEventQueue eventQueue,
-            TestCommandQueue commandQueue) {
+            TestCommandQueue commandQueue,
+            Set<String> sources) {
         this.jobGraph = jobGraph;
         this.operatorsWithLifecycleTracking = operatorsWithLifecycleTracking;
         this.operatorsWithDataFlowTracking = operatorsWithDataFlowTracking;
         this.operatorsNumberOfInputs = operatorsNumberOfInputs;
         this.eventQueue = eventQueue;
         this.commandQueue = commandQueue;
+        this.sources = sources;
     }
 }

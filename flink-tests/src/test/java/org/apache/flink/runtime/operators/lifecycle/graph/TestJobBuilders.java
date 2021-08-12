@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.apache.flink.api.common.restartstrategy.RestartStrategies.noRestart;
 import static org.apache.flink.configuration.JobManagerOptions.EXECUTION_FAILOVER_STRATEGY;
@@ -104,7 +105,8 @@ public class TestJobBuilders {
                             new HashSet<>(asList(unitedSourceLeft, mapForward)),
                             operatorsNumberOfInputs,
                             eventQueue,
-                            commandQueue);
+                            commandQueue,
+                            singleton(unitedSourceLeft));
                 }
 
                 @Override
@@ -238,7 +240,9 @@ public class TestJobBuilders {
                                             multipleInput)),
                             operatorsNumberOfInputs,
                             eventQueue,
-                            commandQueue);
+                            commandQueue,
+                            new HashSet<>(
+                                    asList(unitedSourceLeft, unitedSourceRight, connectedSource)));
                 }
 
                 @Override

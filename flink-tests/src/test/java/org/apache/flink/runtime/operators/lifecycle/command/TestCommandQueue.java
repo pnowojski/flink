@@ -30,11 +30,28 @@ public interface TestCommandQueue extends Serializable {
 
     void unsubscribe(CommandExecutor executor);
 
-    // todo: revisit for p2p
     interface TestCommandTarget {
         boolean matches(TestCommandTarget target);
 
         TestCommandTarget ALL = target -> true;
+
+        static TestCommandTarget forOperatorId(String operatorId) {
+            return new OperatorIdCommandTarget(operatorId);
+        }
+
+        class OperatorIdCommandTarget implements TestCommandTarget {
+            private final String operatorId;
+
+            public OperatorIdCommandTarget(String operatorId) {
+                this.operatorId = operatorId;
+            }
+
+            @Override
+            public boolean matches(TestCommandTarget target) {
+                return target instanceof OperatorIdCommandTarget
+                        && ((OperatorIdCommandTarget) target).operatorId.equals(operatorId);
+            }
+        }
     }
 
     interface CommandExecutor {

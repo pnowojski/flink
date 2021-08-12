@@ -30,6 +30,8 @@ import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.apache.flink.util.function.ThrowingConsumer;
 
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -41,6 +43,7 @@ import static org.apache.flink.runtime.operators.lifecycle.event.TestEventQueue.
 import static org.apache.flink.runtime.testutils.CommonTestUtils.waitForAllTaskRunning;
 
 class TestJobExecutor {
+    private static final Logger LOG = LoggerFactory.getLogger(TestJobExecutor.class);
 
     private final List<ThrowingConsumer<TestJobExecutionContext, Exception>> steps;
 
@@ -59,9 +62,21 @@ class TestJobExecutor {
         List<ThrowingConsumer<TestJobExecutionContext, Exception>> steps = new ArrayList<>();
         steps.add(
                 ctx -> {
+                    LOG.debug("submitGraph: {}", jobGraph);
                     MiniClusterWithClientResource miniClusterResource = ctx.miniClusterResource;
                     ctx.job = miniClusterResource.getClusterClient().submitJob(jobGraph).get();
                     waitForAllTaskRunning(miniClusterResource.getMiniCluster(), ctx.job);
+                });
+        return new TestJobExecutor(steps);
+    }
+
+    public TestJobExecutor waitForAllRunning() {
+        List<ThrowingConsumer<TestJobExecutionContext, Exception>> steps =
+                new ArrayList<>(this.steps);
+        steps.add(
+                ctx -> {
+                    LOG.debug("waitForAllRunning in {}", ctx.job);
+                    waitForAllTaskRunning(ctx.miniClusterResource.getMiniCluster(), ctx.job);
                 });
         return new TestJobExecutor(steps);
     }
@@ -71,9 +86,11 @@ class TestJobExecutor {
         List<ThrowingConsumer<TestJobExecutionContext, Exception>> steps =
                 new ArrayList<>(this.steps);
         steps.add(
-                ctx ->
-                        eventQueue.withHandler(
-                                e -> eventClass.isAssignableFrom(e.getClass()) ? STOP : CONTINUE));
+                ctx -> {
+                    LOG.debug("waitForEvent: {}", eventClass.getSimpleName());
+                    eventQueue.withHandler(
+                            e -> eventClass.isAssignableFrom(e.getClass()) ? STOP : CONTINUE);
+                });
         return new TestJobExecutor(steps);
     }
 
@@ -82,6 +99,7 @@ class TestJobExecutor {
                 new ArrayList<>(this.steps);
         steps.add(
                 ctx -> {
+                    LOG.debug("stopWithSavepoint: {} (withDrain: {})", folder, withDrain);
                     ClusterClient<?> client = ctx.miniClusterResource.getClusterClient();
                     client.stopWithSavepoint(ctx.job, withDrain, folder.newFolder().toString())
                             .get();
@@ -92,14 +110,20 @@ class TestJobExecutor {
     public TestJobExecutor sendCommand(
             TestCommandQueue commandQueue,
             TestCommand testCommand,
-            TestCommandRetention retention) {
-        steps.add(ctx -> commandQueue.add(testCommand, TestCommandTarget.ALL, retention));
+            TestCommandRetention retention,
+            TestCommandTarget target) {
+        steps.add(
+                ctx -> {
+                    LOG.debug("sendCommand: {}", testCommand);
+                    commandQueue.add(testCommand, target, retention);
+                });
         return this;
     }
 
     public TestJobExecutor waitForTermination() {
         steps.add(
                 ctx -> {
+                    LOG.debug("waitForTermination");
                     while (!ctx.miniClusterResource
                             .getClusterClient()
                             .getJobStatus(ctx.job)

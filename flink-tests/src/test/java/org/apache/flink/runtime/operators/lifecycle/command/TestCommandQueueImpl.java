@@ -32,6 +32,9 @@ class TestCommandQueueImpl implements TestCommandQueue {
         for (Tuple2<CommandExecutor, TestCommandTarget> handlerAndTarget : subscribers) {
             if (target.matches(handlerAndTarget.f1)) {
                 handlerAndTarget.f0.execute(testCommand);
+                if (testCommand.isTerminal()) {
+                    subscribers.remove(handlerAndTarget);
+                }
                 if (retention == TestCommandRetention.REMOVE_ON_MATCH) {
                     break;
                 }
