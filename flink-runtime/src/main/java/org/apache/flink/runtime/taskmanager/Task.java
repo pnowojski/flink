@@ -1293,7 +1293,7 @@ public class Task
      * @param checkpointTimestamp The timestamp associated with the checkpoint.
      * @param checkpointOptions Options for performing this checkpoint.
      */
-    public void triggerCheckpointBarrier(
+    public CompletableFuture<Boolean> triggerCheckpointBarrier(
             final long checkpointID,
             final long checkpointTimestamp,
             final CheckpointOptions checkpointOptions) {
@@ -1305,7 +1305,7 @@ public class Task
 
         if (executionState == ExecutionState.RUNNING && invokable != null) {
             try {
-                invokable.triggerCheckpointAsync(checkpointMetaData, checkpointOptions);
+                return invokable.triggerCheckpointAsync(checkpointMetaData, checkpointOptions);
             } catch (RejectedExecutionException ex) {
                 // This may happen if the mailbox is closed. It means that the task is shutting
                 // down, so we just ignore it.
@@ -1348,6 +1348,7 @@ public class Task
                             "Task name with subtask : " + taskNameWithSubtask,
                             CheckpointFailureReason.CHECKPOINT_DECLINED_TASK_NOT_READY));
         }
+        return CompletableFuture.completedFuture(false);
     }
 
     public void notifyCheckpointComplete(final long checkpointID) {
