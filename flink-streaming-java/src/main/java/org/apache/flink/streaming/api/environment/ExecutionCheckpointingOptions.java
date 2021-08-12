@@ -244,7 +244,7 @@ public class ExecutionCheckpointingOptions {
     public static final ConfigOption<Boolean> ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH =
             ConfigOptions.key("execution.checkpointing.checkpoints-after-tasks-finish.enabled")
                     .booleanType()
-                    .defaultValue(false)
+                    .defaultValue(true)
                     .withDescription(
                             "Feature toggle for enabling checkpointing after tasks finish.");
 }
