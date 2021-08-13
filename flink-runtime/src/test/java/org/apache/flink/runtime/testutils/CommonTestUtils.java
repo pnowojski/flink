@@ -182,8 +182,10 @@ public class CommonTestUtils {
                                                             .allMatch(
                                                                     task ->
                                                                             task.getExecutionState()
-                                                                                    == ExecutionState
-                                                                                            .RUNNING));
+                                                                                            == ExecutionState
+                                                                                                    .RUNNING
+                                                                                    || task.getExecutionState()
+                                                                                            .isTerminal()));
                 },
                 timeout);
     }
