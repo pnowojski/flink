@@ -38,8 +38,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.flink.runtime.operators.lifecycle.event.TestEventQueue.TestEventHandler.TestEventNextAction.CONTINUE;
-import static org.apache.flink.runtime.operators.lifecycle.event.TestEventQueue.TestEventHandler.TestEventNextAction.STOP;
 import static org.apache.flink.runtime.testutils.CommonTestUtils.waitForAllTaskRunning;
 
 class TestJobExecutor {
@@ -88,8 +86,7 @@ class TestJobExecutor {
         steps.add(
                 ctx -> {
                     LOG.debug("waitForEvent: {}", eventClass.getSimpleName());
-                    eventQueue.withHandler(
-                            e -> eventClass.isAssignableFrom(e.getClass()) ? STOP : CONTINUE);
+                    eventQueue.waitForEvent(eventClass);
                 });
         return new TestJobExecutor(steps);
     }

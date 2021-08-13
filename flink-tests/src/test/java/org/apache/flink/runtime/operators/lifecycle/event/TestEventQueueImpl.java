@@ -17,8 +17,6 @@
 
 package org.apache.flink.runtime.operators.lifecycle.event;
 
-import org.apache.flink.util.function.RunnableWithException;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -27,53 +25,27 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 class TestEventQueueImpl implements TestEventQueue {
     private final List<TestEvent> events = new CopyOnWriteArrayList<>();
-    private final List<TestEventListener> listeners = new CopyOnWriteArrayList<>();
+    private final List<BlockingQueue<TestEvent>> activeEventListeners =
+            new CopyOnWriteArrayList<>();
 
     public void add(TestEvent e) {
         events.add(e);
-        listeners.forEach(l -> l.onEvent(e));
+        activeEventListeners.forEach(l -> l.add(e));
     }
 
     @Override
-    public void withHandler(TestEventHandler handler) throws Exception {
+    public void waitForEvent(Class<? extends TestEvent> eventClass) throws Exception {
         BlockingQueue<TestEvent> queue = new LinkedBlockingQueue<>();
-        withListener(
-                queue::add,
-                () -> {
-                    TestEventHandler.TestEventNextAction next =
-                            TestEventHandler.TestEventNextAction.CONTINUE;
-                    while (next == TestEventHandler.TestEventNextAction.CONTINUE) {
-                        next = handler.handle(queue.take());
-                    }
-                });
-    }
-
-    public void withListener(TestEventListener listener, RunnableWithException action)
-            throws Exception {
-        listener = addListener(listener);
+        activeEventListeners.add(queue);
         try {
-            action.run();
+            while (eventClass.isAssignableFrom(queue.take().getClass())) {}
         } finally {
-            removeListener(listener);
+            activeEventListeners.remove(queue);
         }
-    }
-
-    public TestEventListener addListener(TestEventListener listener) {
-        listeners.add(listener);
-        return listener;
-    }
-
-    public void removeListener(TestEventListener listener) {
-        listeners.remove(listener);
     }
 
     @Override
     public List<TestEvent> getAll() {
         return Collections.unmodifiableList(events);
-    }
-
-    /** A listener of {@link TestEvent}s. */
-    public interface TestEventListener {
-        void onEvent(TestEvent e);
     }
 }

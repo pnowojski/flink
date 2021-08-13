@@ -28,17 +28,7 @@ public interface TestEventQueue extends Serializable {
 
     List<TestEvent> getAll();
 
-    void withHandler(TestEventHandler handler) throws Exception;
-
-    /** Handler of {@link TestEvent}s. */
-    interface TestEventHandler {
-        enum TestEventNextAction {
-            CONTINUE,
-            STOP
-        }
-
-        TestEventNextAction handle(TestEvent e);
-    }
+    void waitForEvent(Class<? extends TestEvent> eventClass) throws Exception;
 
     static TestEventQueue createShared(SharedObjects sharedObjects) {
         return new SharedTestEventQueue(sharedObjects.add(new TestEventQueueImpl()));

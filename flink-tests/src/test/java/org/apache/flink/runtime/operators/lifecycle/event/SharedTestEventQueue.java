@@ -39,7 +39,7 @@ class SharedTestEventQueue implements TestEventQueue {
     }
 
     @Override
-    public void withHandler(TestEventHandler handler) throws Exception {
-        delegate.get().withHandler(handler);
+    public void waitForEvent(Class<? extends TestEvent> eventClass) throws Exception {
+        delegate.get().waitForEvent(eventClass);
     }
 }
