@@ -30,6 +30,7 @@ public interface TestCommandQueue extends Serializable {
 
     void unsubscribe(CommandExecutor executor);
 
+    /** A target for the {@link TestCommand}. */
     interface TestCommandTarget {
         boolean matches(TestCommandTarget target);
 
@@ -54,12 +55,16 @@ public interface TestCommandQueue extends Serializable {
         }
     }
 
+    /** An executor of {@link TestCommand}s. */
     interface CommandExecutor {
         void execute(TestCommand testCommand);
     }
 
+    /** Specifies what happens when the target for the command is found. */
     enum TestCommandRetention {
+        /** Remove once the command target is found, i.e. single execution. */
         REMOVE_ON_MATCH,
+        /** Don't remove the command, i.e. it's executed by all currently valid targets.. */
         RETAIN_ON_MATCH
     }
 
