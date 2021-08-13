@@ -18,8 +18,13 @@
 package org.apache.flink.runtime.operators.lifecycle;
 
 import org.apache.flink.api.common.state.CheckpointListener;
+import org.apache.flink.runtime.operators.lifecycle.event.CheckpointCompletedEvent;
+import org.apache.flink.runtime.operators.lifecycle.event.TestEvent;
 import org.apache.flink.runtime.operators.lifecycle.event.WatermarkReceivedEvent;
 import org.apache.flink.runtime.operators.lifecycle.graph.TestJobBuilders.TestingGraphBuilder;
+import org.apache.flink.runtime.operators.lifecycle.validation.DrainingValidator;
+import org.apache.flink.runtime.operators.lifecycle.validation.FinishingValidator;
+import org.apache.flink.runtime.operators.lifecycle.validation.SameCheckpointValidator;
 import org.apache.flink.runtime.state.StateSnapshotContext;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
 import org.apache.flink.streaming.api.operators.BoundedMultiInput;
@@ -35,8 +40,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 
+import java.util.List;
+
 import static org.apache.flink.runtime.operators.lifecycle.graph.TestJobBuilders.COMPLEX_GRAPH_BUILDER;
 import static org.apache.flink.runtime.operators.lifecycle.graph.TestJobBuilders.SIMPLE_GRAPH_BUILDER;
+import static org.apache.flink.runtime.operators.lifecycle.validation.TestJobDataFlowValidator.checkDataFlow;
+import static org.apache.flink.runtime.operators.lifecycle.validation.TestOperatorLifecycleValidator.checkOperatorsLifecycle;
 
 /**
  * A test suite to check that the operator methods are called according to contract when the job is
@@ -106,11 +115,26 @@ public class StopWithSavepointITCase extends AbstractTestBase {
                 .stopWithSavepoint(temporaryFolder, withDrain)
                 .execute(miniClusterResource);
 
-        TestJobExecutionValidators.checkOperatorsLifecycle(testJob, withDrain, true);
+        SameCheckpointValidator sameCheckpointValidator =
+                // note: using highest checkpoint will not work with partially finishing tasks
+                // in that case, savepoint ID can be inferred from savepoint path
+                new SameCheckpointValidator(getHighestCheckpoint(testJob.eventQueue.getAll()));
+
+        if (withDrain) {
+            checkOperatorsLifecycle(
+                    testJob,
+                    sameCheckpointValidator,
+                    new DrainingValidator(),
+                    /* Currently (1.14), finish is only called with drain; todo: enable after updating production code */
+                    new FinishingValidator());
+        } else {
+            checkOperatorsLifecycle(testJob, sameCheckpointValidator);
+        }
+
         if (withDrain) {
             // currently (1.14), sources do not stop before taking a savepoint and continue emission
             // todo: enable after updating production code
-            TestJobExecutionValidators.checkDataFlow(testJob);
+            checkDataFlow(testJob);
         }
     }
 
@@ -120,5 +144,13 @@ public class StopWithSavepointITCase extends AbstractTestBase {
             new Object[] {true, SIMPLE_GRAPH_BUILDER}, new Object[] {false, SIMPLE_GRAPH_BUILDER},
             new Object[] {true, COMPLEX_GRAPH_BUILDER}, new Object[] {false, COMPLEX_GRAPH_BUILDER},
         };
+    }
+
+    private static long getHighestCheckpoint(List<TestEvent> events) {
+        return events.stream()
+                .filter(e -> e instanceof CheckpointCompletedEvent)
+                .mapToLong(e -> ((CheckpointCompletedEvent) e).checkpointID)
+                .max()
+                .getAsLong();
     }
 }

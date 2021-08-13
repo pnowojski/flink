@@ -20,6 +20,9 @@ package org.apache.flink.runtime.operators.lifecycle;
 import org.apache.flink.runtime.operators.lifecycle.event.CheckpointCompletedEvent;
 import org.apache.flink.runtime.operators.lifecycle.event.OperatorStartedEvent;
 import org.apache.flink.runtime.operators.lifecycle.graph.TestJobBuilders.TestingGraphBuilder;
+import org.apache.flink.runtime.operators.lifecycle.validation.DrainingValidator;
+import org.apache.flink.runtime.operators.lifecycle.validation.FinishingValidator;
+import org.apache.flink.runtime.operators.lifecycle.validation.TestJobDataFlowValidator;
 import org.apache.flink.test.util.AbstractTestBase;
 import org.apache.flink.testutils.junit.SharedObjects;
 
@@ -38,6 +41,7 @@ import static org.apache.flink.runtime.operators.lifecycle.command.TestCommandQu
 import static org.apache.flink.runtime.operators.lifecycle.command.TestCommandQueue.TestCommandTarget.forOperatorId;
 import static org.apache.flink.runtime.operators.lifecycle.graph.TestJobBuilders.COMPLEX_GRAPH_BUILDER;
 import static org.apache.flink.runtime.operators.lifecycle.graph.TestJobBuilders.SIMPLE_GRAPH_BUILDER;
+import static org.apache.flink.runtime.operators.lifecycle.validation.TestOperatorLifecycleValidator.checkOperatorsLifecycle;
 import static org.apache.flink.streaming.api.environment.ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH;
 
 /**
@@ -81,8 +85,8 @@ public class PartiallyFinishedSourcesITCase extends AbstractTestBase {
                 .waitForTermination()
                 .execute(miniClusterResource);
 
-        TestJobExecutionValidators.checkOperatorsLifecycle(testJob, true, false);
-        TestJobExecutionValidators.checkDataFlow(testJob);
+        checkOperatorsLifecycle(testJob, new DrainingValidator(), new FinishingValidator());
+        TestJobDataFlowValidator.checkDataFlow(testJob);
     }
 
     @Parameterized.Parameters(name = "{0}, fully finish: {1}")

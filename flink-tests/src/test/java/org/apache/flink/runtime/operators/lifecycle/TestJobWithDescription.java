@@ -26,12 +26,12 @@ import java.util.Set;
 
 /** Test {@link JobGraph} with description to allow its execution validation. */
 public class TestJobWithDescription {
-    final JobGraph jobGraph;
-    final Set<String> operatorsWithLifecycleTracking;
+    public final JobGraph jobGraph;
+    public final Set<String> operatorsWithLifecycleTracking;
     final Set<String> sources;
-    final Set<String> operatorsWithDataFlowTracking;
-    final Map<String, Integer> operatorsNumberOfInputs;
-    final TestEventQueue eventQueue;
+    public final Set<String> operatorsWithDataFlowTracking;
+    public final Map<String, Integer> operatorsNumberOfInputs;
+    public final TestEventQueue eventQueue;
     final TestCommandQueue commandQueue;
 
     public TestJobWithDescription(
