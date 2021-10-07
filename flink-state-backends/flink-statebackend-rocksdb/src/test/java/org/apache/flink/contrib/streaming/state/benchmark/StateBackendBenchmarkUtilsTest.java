@@ -68,27 +68,27 @@ public class StateBackendBenchmarkUtilsTest {
 
     @Test
     public void testCreateKeyedStateBackend() throws IOException {
-        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType);
+        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType, null, 128);
         cleanUp(backend);
     }
 
     @Test
     public void testGetValueState() throws Exception {
-        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType);
+        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType, null, 128);
         getValueState(backend, valueStateDescriptor);
         cleanUp(backend);
     }
 
     @Test
     public void testGetListState() throws Exception {
-        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType);
+        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType, null, 128);
         getListState(backend, listStateDescriptor);
         cleanUp(backend);
     }
 
     @Test
     public void testGetMapState() throws Exception {
-        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType);
+        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType, null, 128);
         getMapState(backend, mapStateDescriptor);
         cleanUp(backend);
     }
@@ -98,7 +98,7 @@ public class StateBackendBenchmarkUtilsTest {
         Assume.assumeThat(
                 backendType,
                 not(equalTo(StateBackendBenchmarkUtils.StateBackendType.BATCH_EXECUTION)));
-        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType);
+        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType, null, 128);
         ListState<Long> listState = getListState(backend, listStateDescriptor);
         for (long i = 0; i < 10; i++) {
             backend.setCurrentKey(i);
@@ -120,7 +120,7 @@ public class StateBackendBenchmarkUtilsTest {
 
     @Test
     public void testCompactState() throws Exception {
-        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType);
+        KeyedStateBackend<Long> backend = createKeyedStateBackend(backendType, null, 128);
         ListState<Long> listState = getListState(backend, listStateDescriptor);
         for (long i = 0; i < 10; i++) {
             backend.setCurrentKey(i);

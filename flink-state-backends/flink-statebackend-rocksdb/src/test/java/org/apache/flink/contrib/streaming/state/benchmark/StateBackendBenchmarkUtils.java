@@ -67,12 +67,16 @@ public class StateBackendBenchmarkUtils {
     private static final String dbDirName = "dbPath";
     private static File rootDir;
 
-    public static KeyedStateBackend<Long> createKeyedStateBackend(StateBackendType backendType)
+    public static KeyedStateBackend<Long> createKeyedStateBackend(
+            StateBackendType backendType, KeyGroupRange keyGroupRange, int maxParallelism)
             throws IOException {
         switch (backendType) {
             case HEAP:
                 rootDir = prepareDirectory(rootDirName, null);
-                return createHeapKeyedStateBackend(rootDir);
+                return createHeapKeyedStateBackend(rootDir, false, keyGroupRange, maxParallelism);
+            case HEAP_ASYNC:
+                rootDir = prepareDirectory(rootDirName, null);
+                return createHeapKeyedStateBackend(rootDir, true, keyGroupRange, maxParallelism);
             case ROCKSDB:
                 rootDir = prepareDirectory(rootDirName, null);
                 return createRocksDBKeyedStateBackend(rootDir);
@@ -136,20 +140,20 @@ public class StateBackendBenchmarkUtils {
         }
     }
 
-    private static HeapKeyedStateBackend<Long> createHeapKeyedStateBackend(File rootDir)
+    private static HeapKeyedStateBackend<Long> createHeapKeyedStateBackend(
+            File rootDir, boolean async, KeyGroupRange keyGroupRange, int maxParallelism)
             throws IOException {
         File recoveryBaseDir = prepareDirectory(recoveryDirName, rootDir);
-        KeyGroupRange keyGroupRange = new KeyGroupRange(0, 1);
-        int numberOfKeyGroups = keyGroupRange.getNumberOfKeyGroups();
+
         ExecutionConfig executionConfig = new ExecutionConfig();
         HeapPriorityQueueSetFactory priorityQueueSetFactory =
-                new HeapPriorityQueueSetFactory(keyGroupRange, numberOfKeyGroups, 128);
+                new HeapPriorityQueueSetFactory(keyGroupRange, maxParallelism, 128);
         HeapKeyedStateBackendBuilder<Long> backendBuilder =
                 new HeapKeyedStateBackendBuilder<>(
                         null,
                         new LongSerializer(),
                         Thread.currentThread().getContextClassLoader(),
-                        numberOfKeyGroups,
+                        maxParallelism,
                         keyGroupRange,
                         executionConfig,
                         TtlTimeProvider.DEFAULT,
@@ -161,7 +165,7 @@ public class StateBackendBenchmarkUtils {
                                 new LocalRecoveryDirectoryProviderImpl(
                                         recoveryBaseDir, new JobID(), new JobVertexID(), 0)),
                         priorityQueueSetFactory,
-                        false,
+                        async,
                         new CloseableRegistry());
         return backendBuilder.build();
     }
@@ -231,6 +235,7 @@ public class StateBackendBenchmarkUtils {
     /** Enum of backend type. */
     public enum StateBackendType {
         HEAP,
+        HEAP_ASYNC,
         ROCKSDB,
         BATCH_EXECUTION
     }
