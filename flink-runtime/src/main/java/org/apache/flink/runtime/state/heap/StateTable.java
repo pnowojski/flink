@@ -257,7 +257,7 @@ public abstract class StateTable<K, N, S>
     // ------------------------------------------------------------------------
 
     private S get(K key, int keyGroupIndex, N namespace) {
-        checkKeyNamespacePreconditions(key, namespace);
+        //        checkKeyNamespacePreconditions(key, namespace);
         return getMapForKeyGroup(keyGroupIndex).get(key, namespace);
     }
 
