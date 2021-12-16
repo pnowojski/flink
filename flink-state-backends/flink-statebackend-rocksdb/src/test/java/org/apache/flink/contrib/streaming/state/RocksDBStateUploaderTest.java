@@ -40,10 +40,10 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -72,17 +72,17 @@ public class RocksDBStateUploaderTest extends TestLogger {
                     }
 
                     @Override
-                    public boolean canDuplicate(
+                    public boolean canFastDuplicate(
                             StreamStateHandle stateHandle, CheckpointedStateScope scope)
                             throws IOException {
                         return false;
                     }
 
                     @Override
-                    public StreamStateHandle duplicate(
-                            StreamStateHandle stateHandle, CheckpointedStateScope scope)
+                    public List<StreamStateHandle> duplicate(
+                            List<StreamStateHandle> stateHandles, CheckpointedStateScope scope)
                             throws IOException {
-                        throw new UnsupportedEncodingException();
+                        throw new UnsupportedOperationException();
                     }
                 };
 

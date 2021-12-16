@@ -236,17 +236,17 @@ public class ChangelogKeyedStateBackend<K>
                     }
 
                     @Override
-                    public boolean canDuplicate(
+                    public boolean canFastDuplicate(
                             StreamStateHandle stateHandle, CheckpointedStateScope scope)
                             throws IOException {
                         return false;
                     }
 
                     @Override
-                    public StreamStateHandle duplicate(
-                            StreamStateHandle stateHandle, CheckpointedStateScope scope)
+                    public List<StreamStateHandle> duplicate(
+                            List<StreamStateHandle> stateHandles, CheckpointedStateScope scope)
                             throws IOException {
-                        return null;
+                        throw new UnsupportedOperationException();
                     }
                 };
         this.closer.register(keyedStateBackend);

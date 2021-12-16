@@ -55,6 +55,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -235,14 +236,14 @@ public class UnalignedCheckpointFailureHandlingITCase {
                 }
 
                 @Override
-                public boolean canDuplicate(
+                public boolean canFastDuplicate(
                         StreamStateHandle stateHandle, CheckpointedStateScope scope) {
                     return false;
                 }
 
                 @Override
-                public StreamStateHandle duplicate(
-                        StreamStateHandle stateHandle, CheckpointedStateScope scope)
+                public List<StreamStateHandle> duplicate(
+                        List<StreamStateHandle> stateHandle, CheckpointedStateScope scope)
                         throws IOException {
                     throw new UnsupportedEncodingException();
                 }
