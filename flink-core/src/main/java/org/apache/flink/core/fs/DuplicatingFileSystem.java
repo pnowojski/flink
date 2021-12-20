@@ -33,11 +33,11 @@ public interface DuplicatingFileSystem {
      * <p>This should be a rather cheap operation, preferably not involving any remote accesses. You
      * can check e.g. if both paths are on the same host.
      *
-     * @param src The path of the source file to duplicate
-     * @param dst The path where to duplicate the source file
+     * @param source The path of the source file to duplicate
+     * @param destination The path where to duplicate the source file
      * @return true, if we can perform the duplication
      */
-    boolean canFastDuplicate(Path src, Path dst) throws IOException;
+    boolean canFastDuplicate(Path source, Path destination) throws IOException;
 
     /**
      * Duplicates the source path into the destination path.
@@ -51,22 +51,22 @@ public interface DuplicatingFileSystem {
     /** A pair of source and destination to duplicate a file. */
     interface CopyRequest {
         /** The path of the source file to duplicate */
-        Path getSrc();
+        Path getSource();
 
         /** The path where to duplicate the source file */
-        Path getDst();
+        Path getDestination();
 
         /** A factory method for creating a simple pair of source/destination. */
-        static CopyRequest of(Path src, Path dst) {
+        static CopyRequest of(Path source, Path destination) {
             return new CopyRequest() {
                 @Override
-                public Path getSrc() {
-                    return src;
+                public Path getSource() {
+                    return source;
                 }
 
                 @Override
-                public Path getDst() {
-                    return dst;
+                public Path getDestination() {
+                    return destination;
                 }
             };
         }
