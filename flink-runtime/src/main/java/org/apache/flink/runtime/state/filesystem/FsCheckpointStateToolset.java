@@ -21,7 +21,6 @@ package org.apache.flink.runtime.state.filesystem;
 import org.apache.flink.core.fs.DuplicatingFileSystem;
 import org.apache.flink.core.fs.DuplicatingFileSystem.CopyRequest;
 import org.apache.flink.core.fs.EntropyInjector;
-import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.state.CheckpointStateToolset;
 import org.apache.flink.runtime.state.StreamStateHandle;
@@ -74,7 +73,7 @@ public class FsCheckpointStateToolset implements CheckpointStateToolset {
                 .mapToObj(
                         idx -> {
                             final StreamStateHandle originalHandle = stateHandles.get(idx);
-                            final Path dst = requests.get(idx).getDst();
+                            final Path dst = requests.get(idx).getDestination();
                             if (originalHandle instanceof RelativeFileStateHandle) {
                                 return new RelativeFileStateHandle(
                                         dst, dst.getName(), originalHandle.getStateSize());
