@@ -93,8 +93,8 @@ class FsCheckpointStateToolsetTest {
     private static final class TestDuplicatingFileSystem implements DuplicatingFileSystem {
 
         @Override
-        public boolean canFastDuplicate(Path src, Path dst) throws IOException {
-            return !src.equals(dst);
+        public boolean canFastDuplicate(Path source, Path destination) throws IOException {
+            return !source.equals(destination);
         }
 
         @Override
