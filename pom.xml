@@ -1603,6 +1603,10 @@ under the License.
 							<includes>
 								<include>${test.unit.pattern}</include>
 							</includes>
+							<forkCount>4</forkCount>
+							<argLine>-Xms256m -Xmx1024m -Dmvn.forkNumber=${surefire.forkNumber}
+								-XX:+UseG1GC -Duser.country=US -Duser.language=en
+							</argLine>
 						</configuration>
 					</execution>
 					<!--execute all the integration tests-->
