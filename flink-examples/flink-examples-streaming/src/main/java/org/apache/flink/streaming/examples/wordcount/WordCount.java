@@ -20,22 +20,37 @@ package org.apache.flink.streaming.examples.wordcount;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringEncoder;
+import org.apache.flink.api.connector.source.Boundedness;
+import org.apache.flink.api.connector.source.ReaderOutput;
+import org.apache.flink.api.connector.source.Source;
+import org.apache.flink.api.connector.source.SourceReader;
+import org.apache.flink.api.connector.source.SourceReaderContext;
+import org.apache.flink.api.connector.source.SourceSplit;
+import org.apache.flink.api.connector.source.SplitEnumerator;
+import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.file.sink.FileSink;
 import org.apache.flink.connector.file.src.FileSource;
 import org.apache.flink.connector.file.src.reader.TextLineInputFormat;
+import org.apache.flink.core.io.InputStatus;
+import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.sink.filesystem.rollingpolicies.DefaultRollingPolicy;
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.examples.wordcount.util.CLI;
 import org.apache.flink.streaming.examples.wordcount.util.WordCountData;
 import org.apache.flink.util.Collector;
 
+import javax.annotation.Nullable;
+
+import java.io.IOException;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Implements the "WordCount" program that computes a simple word occurrence histogram over text
@@ -101,6 +116,7 @@ public class WordCount {
         // By setting the runtime mode to AUTOMATIC, Flink will choose BATCH if all sources
         // are bounded and otherwise STREAMING.
         env.setRuntimeMode(params.getExecutionMode());
+        env.setParallelism(2);
 
         // This optional step makes the input parameters
         // available in the Flink UI.
@@ -124,26 +140,8 @@ public class WordCount {
             System.out.println("Use --input to specify file input.");
             // get default test text data
             text =
-                    env.addSource(
-                            new SourceFunction<String>() {
-                                private volatile boolean running = true;
-
-                                @Override
-                                public void run(SourceContext<String> ctx) throws Exception {
-                                    while (running) {
-                                        for (String word : WordCountData.WORDS) {
-                                            synchronized (ctx.getCheckpointLock()) {
-                                                ctx.collect(word);
-                                            }
-                                        }
-                                    }
-                                }
-
-                                @Override
-                                public void cancel() {
-                                    running = false;
-                                }
-                            });
+                    env.fromSource(
+                            new WordSource(), WatermarkStrategy.noWatermarks(), "Word source");
         }
 
         DataStream<Tuple2<String, Integer>> counts =
@@ -181,14 +179,15 @@ public class WordCount {
         } else {
             System.out.println("Printing result to stdout. Use --output to specify output path.");
             counts.addSink(
-                    new SinkFunction<Tuple2<String, Integer>>() {
-                        @Override
-                        public void invoke(Tuple2<String, Integer> value, Context context)
-                                throws Exception {
-                            Thread.sleep(1);
-                            // ignore
-                        }
-                    });
+                            new SinkFunction<Tuple2<String, Integer>>() {
+                                @Override
+                                public void invoke(Tuple2<String, Integer> value, Context context)
+                                        throws Exception {
+                                    Thread.sleep(1);
+                                    // ignore
+                                }
+                            })
+                    .setParallelism(1);
             //			counts.print();
         }
 
@@ -221,5 +220,133 @@ public class WordCount {
                 }
             }
         }
+    }
+
+    private static class WordSplit implements SourceSplit {
+        public static final String SPLIT_ID = "fakeSplitId";
+
+        public WordSplit() {}
+
+        @Override
+        public String splitId() {
+            return SPLIT_ID;
+        }
+    }
+
+    private static class WordSource implements Source<String, WordSplit, WordSplit> {
+        @Override
+        public Boundedness getBoundedness() {
+            return Boundedness.CONTINUOUS_UNBOUNDED;
+        }
+
+        @Override
+        public SourceReader<String, WordSplit> createReader(SourceReaderContext readerContext)
+                throws Exception {
+            return new WordSourceReader();
+        }
+
+        @Override
+        public SplitEnumerator<WordSplit, WordSplit> createEnumerator(
+                SplitEnumeratorContext<WordSplit> enumContext) throws Exception {
+            return new WordSplitEnumerator(enumContext);
+        }
+
+        @Override
+        public SplitEnumerator<WordSplit, WordSplit> restoreEnumerator(
+                SplitEnumeratorContext<WordSplit> enumContext, WordSplit checkpoint)
+                throws Exception {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public SimpleVersionedSerializer<WordSplit> getSplitSerializer() {
+            return new WordSplitSerializer();
+        }
+
+        @Override
+        public SimpleVersionedSerializer<WordSplit> getEnumeratorCheckpointSerializer() {
+            return new WordSplitSerializer();
+        }
+    }
+
+    private static class WordSourceReader implements SourceReader<String, WordSplit> {
+        private int index;
+
+        @Override
+        public void start() {}
+
+        @Override
+        public InputStatus pollNext(ReaderOutput<String> output) throws Exception {
+            output.collect(WordCountData.WORDS[index]);
+            index = (index + 1) % WordCountData.WORDS.length;
+            return InputStatus.MORE_AVAILABLE;
+        }
+
+        @Override
+        public List<WordSplit> snapshotState(long checkpointId) {
+            return Collections.singletonList(new WordSplit());
+        }
+
+        @Override
+        public CompletableFuture<Void> isAvailable() {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public void addSplits(List<WordSplit> splits) {}
+
+        @Override
+        public void notifyNoMoreSplits() {}
+
+        @Override
+        public void close() throws Exception {}
+    }
+
+    private static class WordSplitSerializer implements SimpleVersionedSerializer<WordSplit> {
+        @Override
+        public int getVersion() {
+            return 0;
+        }
+
+        @Override
+        public byte[] serialize(WordSplit split) throws IOException {
+            return new byte[0];
+        }
+
+        @Override
+        public WordSplit deserialize(int version, byte[] serialized) throws IOException {
+            return new WordSplit();
+        }
+    }
+
+    private static class WordSplitEnumerator implements SplitEnumerator<WordSplit, WordSplit> {
+
+        private final SplitEnumeratorContext<WordSplit> context;
+
+        public WordSplitEnumerator(SplitEnumeratorContext<WordSplit> context) {
+            this.context = context;
+        }
+
+        @Override
+        public void start() {}
+
+        @Override
+        public void handleSplitRequest(int subtaskId, @Nullable String requesterHostname) {}
+
+        @Override
+        public void addSplitsBack(List<WordSplit> splits, int subtaskId) {}
+
+        @Override
+        public void addReader(int subtaskId) {
+            context.assignSplit(new WordSplit(), subtaskId);
+        }
+
+        @Override
+        public WordSplit snapshotState(long checkpointId) throws Exception {
+            return new WordSplit();
+        }
+
+        @Override
+        public void close() throws IOException {}
     }
 }
